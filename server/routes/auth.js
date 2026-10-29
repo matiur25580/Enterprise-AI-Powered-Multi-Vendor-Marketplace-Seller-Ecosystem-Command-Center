@@ -1,0 +1,34 @@
+const r = require('express').Router(); const bcrypt = require('bcryptjs'); const jwt = require('jsonwebtoken');
+const User = require('../models/User'); const Otp = require('../models/Otp');
+const sendEmail = require('../utils/sendEmail'); const genId = require('../utils/generateUniqueId');
+const otpHtml = (o)=>`<div style="font-family:sans-serif"><h2>Marketplace Verification</h2><p>Your 6-digit OTP (valid 5 minutes):</p><h1 style="letter-spacing:8px">${o}</h1></div>`;
+r.post('/register', async (req,res)=>{ try{ const {fullName,email,contact,dob,role,password}=req.body;
+  if(await User.findOne({email})) return res.status(400).json({msg:'This email already registered'});
+  const hash=await bcrypt.hash(password,10); const uniqueId=genId(role,fullName,dob);
+  await User.create({fullName,email,contact,dob,role,password:hash,uniqueId});
+  const otp=Math.floor(100000+Math.random()*900000).toString();
+  await Otp.deleteMany({email}); await Otp.create({email,otp,purpose:'register'});
+  try{ await sendEmail(email,'Verify your Marketplace account',otpHtml(otp)); }catch(e){ console.log('mail err',e.message); }
+  res.json({msg:'Registered! OTP sent to email',uniqueId}); }catch(e){ res.status(500).json({msg:e.message}); } });
+r.post('/verify-register', async (req,res)=>{ try{ const {email,otp}=req.body;
+  const rec=await Otp.findOne({email,otp,purpose:'register'}); if(!rec) return res.status(400).json({msg:'Invalid or expired OTP'});
+  await User.updateOne({email},{isVerified:true}); await Otp.deleteMany({email});
+  res.json({msg:'Account verified successfully!'}); }catch(e){ res.status(500).json({msg:e.message}); } });
+r.post('/login', async (req,res)=>{ try{ const {email,password,role}=req.body;
+  const u=await User.findOne({email,role}); if(!u) return res.status(400).json({msg:"This email doesn't exist, plz register first"});
+  if(!u.isVerified) return res.status(400).json({msg:'Please verify OTP first'});
+  if(!(await bcrypt.compare(password,u.password))) return res.status(400).json({msg:'Invalid credentials'});
+  const token=jwt.sign({id:u._id,role:u.role,uniqueId:u.uniqueId},process.env.JWT_SECRET,{expiresIn:'7d'});
+  res.json({msg:'Login successful',token,user:{fullName:u.fullName,email:u.email,role:u.role,uniqueId:u.uniqueId}}); }catch(e){ res.status(500).json({msg:e.message}); } });
+r.post('/send-otp', async (req,res)=>{ try{ const {email}=req.body;
+  if(!(await User.findOne({email}))) return res.status(400).json({msg:"This email doesn't exist, plz register first"});
+  const otp=Math.floor(100000+Math.random()*900000).toString();
+  await Otp.deleteMany({email}); await Otp.create({email,otp,purpose:'reset'});
+  try{ await sendEmail(email,'Password Reset OTP',otpHtml(otp)); }catch(e){ console.log('mail err',e.message); }
+  res.json({msg:'OTP sent to email'}); }catch(e){ res.status(500).json({msg:e.message}); } });
+r.post('/reset-password', async (req,res)=>{ try{ const {email,otp,newPassword}=req.body;
+  const rec=await Otp.findOne({email,otp,purpose:'reset'}); if(!rec) return res.status(400).json({msg:'Invalid or expired OTP'});
+  const u=await User.findOne({email}); if(await bcrypt.compare(newPassword,u.password)) return res.status(400).json({msg:'This is your current password. Please enter a different password'});
+  u.password=await bcrypt.hash(newPassword,10); await u.save(); await Otp.deleteMany({email});
+  res.json({msg:'Password reset successful!'}); }catch(e){ res.status(500).json({msg:e.message}); } });
+module.exports = r;
