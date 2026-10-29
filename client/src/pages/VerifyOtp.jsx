@@ -7,7 +7,7 @@ export default function VerifyOtp(){ const nav=useNavigate(); const email=localS
   const verify=async()=>{ const otp=boxes.join(''); if(otp.length<6) return setMsg({t:'err',x:'Enter 6-digit OTP'});
     try{ const {data}=await axios.post(`${API}/auth/verify-register`,{email,otp}); setMsg({t:'ok',x:data.msg+' Redirecting to login...'}); setTimeout(()=>nav('/login'),1200);
     }catch(e){ setMsg({t:'err',x:e.response?.data?.msg||'Verification failed'}); } };
-  const resend=async()=>{ try{ await axios.post(`${API}/auth/send-otp`,{email}); setSec(300); setMsg({t:'ok',x:'New OTP sent!'}); }catch(e){ setMsg({t:'err',x:'Resend failed'}); } };
+  const resend=async()=>{ try{ await axios.post(`${API}/auth/resend-verification`,{email}); setSec(300); setMsg({t:'ok',x:'New OTP sent!'}); }catch(e){ setMsg({t:'err',x:'Resend failed'}); } };
   const mm=String(Math.floor(sec/60)).padStart(2,'0'), ss=String(sec%60).padStart(2,'0');
   return <div className="page"><div className="card"><ThemeToggle/>
     <h2>Verify OTP</h2><p className="sub">Sent to {email}</p>
