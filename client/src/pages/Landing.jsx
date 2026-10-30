@@ -6,7 +6,8 @@ export default function Landing(){
   const [now,setNow]=useState(new Date());
   useEffect(()=>{const t=setInterval(()=>setNow(new Date()),1000);return ()=>clearInterval(t);},[]);
   const date=`${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}`;
-  const time=`${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+  const hr=now.getHours(),ap=hr>=12?'PM':'AM',h12=hr%12||12;
+  const time=`${pad(h12)}.${pad(now.getMinutes())}.${pad(now.getSeconds())} ${ap}`;
   const roles=[
     {icon:'\u{1F3EA}',name:'Seller',desc:'Products, flash deals, coupons, reviews & AI sales forecast'},
     {icon:'\u{1F6D2}',name:'Buyer',desc:'AI recommendations, wishlist, wallet cashback & live tracking'},
