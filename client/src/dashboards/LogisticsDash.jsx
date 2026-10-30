@@ -1,6 +1,8 @@
 import {useEffect,useState} from 'react';
 import api,{logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
+import NotifBell from '../components/NotifBell';
+import AnnounceBar from '../components/AnnounceBar';
 import './dash.css';
 export default function LogisticsDash({user}){
   const [tab,setTab]=useState('active');
@@ -17,8 +19,11 @@ export default function LogisticsDash({user}){
     {l:'Pending Pickup',v:ships.filter(o=>o.status==='placed').length,c:'#f59e0b'},
     {l:'In Transit',v:ships.filter(o=>o.status==='shipped').length,c:'#3b82f6'},
     {l:'Delivered Total',v:all.filter(o=>o.status==='delivered').length,c:'#16a34a'},
-    {l:'Fraud Flagged',v:ships.filter(o=>o.fraudFlag).length,c:'#ef4444'}];
-  const list=(tab==='active'?ships:all.filter(o=>o.status==='delivered')).filter(o=>f==='all'||o.status===f||o.warehouse===f);
+    {l:'Fraud Flagged',v:ships.filter(o=>o.fraudFlag).length,c:'#ef4444'},
+    {l:'⏱️ Avg Delivery Time',v:avgHrs?avgHrs.toFixed(1)+' hrs':'—',c:'#06b6d4'}];
+  const delivered=all.filter(o=>o.status==='delivered');
+  const avgHrs=delivered.length?delivered.reduce((t,o)=>t+((new Date(o.updatedAt)-new Date(o.createdAt))/36e5),0)/delivered.length:0;
+  const list=(tab==='active'?ships:delivered).filter(o=>f==='all'||o.status===f||o.warehouse===f);
   const Row=o=><tr key={o._id}><td className="mono">{o.trackingId||'-'}</td>
     <td>{o.buyerId?.fullName||'—'}</td><td>{o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td>
     <td>{o.warehouse}</td><td><span className={'badge '+o.status}>{o.status}</span>{o.deliveryNote&&<div className="muted" style={{fontSize:11}}>📝 {o.deliveryNote}</div>}</td>
@@ -27,8 +32,9 @@ export default function LogisticsDash({user}){
         {o.status==='shipped'&&<button className="btn xs" style={{background:'#16a34a'}} onClick={()=>upd(o._id,'delivered')}>✓ Deliver</button>}</td></tr>;
   return <div className="dash">
     <div className="dash-head"><div><h2>🚚 Logistics Command</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
-      <div className="head-actions"><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+      <div className="head-actions"><NotifBell/><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
+    <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
     <div className="tabs">{['active','delivered'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t==='active'?'Active Shipments':'Delivered History'}</button>)}</div>
     <div className="panel">

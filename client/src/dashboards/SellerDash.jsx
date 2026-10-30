@@ -1,6 +1,8 @@
 import {useEffect,useState} from 'react';
 import api,{logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
+import NotifBell from '../components/NotifBell';
+import AnnounceBar from '../components/AnnounceBar';
 import './dash.css';
 import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 const CATS=['Electronics','Fashion','Home','Grocery','Beauty','Sports'];
@@ -8,12 +10,13 @@ const stars=n=>'★'.repeat(n||0)+'☆'.repeat(5-(n||0));
 export default function SellerDash({user}){
   const [tab,setTab]=useState('products');
   const [products,setProducts]=useState([]); const [orders,setOrders]=useState([]);
-  const [coupons,setCoupons]=useState([]); const [reviews,setReviews]=useState([]);
+  const [coupons,setCoupons]=useState([]); const [reviews,setReviews]=useState([]); const [deals,setDeals]=useState([]);
+  const [df,setDf]=useState({productId:'',percent:'',endsAt:''});
   const [msg,setMsg]=useState(null); const [showForm,setShowForm]=useState(false);
   const [editing,setEditing]=useState(null);
   const [f,setF]=useState({name:'',price:'',stock:'',category:'Electronics',warehouse:'WH-Dhaka'});
   const [cf,setCf]=useState({code:'',percent:'',minOrder:''});
-  const load=async()=>{ try{ const [p,o,c,rv]=await Promise.all([api.get('/shop/products/mine'),api.get('/shop/orders'),api.get('/shop/coupons/mine'),api.get('/shop/reviews/mine/seller')]); setProducts(p.data); setOrders(o.data); setCoupons(c.data); setReviews(rv.data); }catch(e){ setMsg({t:'err',x:'Failed to load data'}); } };
+  const load=async()=>{ try{ const [p,o,c,rv,d]=await Promise.all([api.get('/shop/products/mine'),api.get('/shop/orders'),api.get('/shop/coupons/mine'),api.get('/shop/reviews/mine/seller'),api.get('/shop/deals/mine')]); setProducts(p.data); setOrders(o.data); setCoupons(c.data); setReviews(rv.data); setDeals(d.data); }catch(e){ setMsg({t:'err',x:'Failed to load data'}); } };
   useEffect(()=>{load();},[]);
   const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
   const er=e=>setMsg({t:'err',x:e.response?.data?.msg||'Failed'});
@@ -28,6 +31,8 @@ export default function SellerDash({user}){
   const addCoupon=async e=>{ e.preventDefault(); try{ await api.post('/shop/coupons',cf); ok('Coupon created!'); setCf({code:'',percent:'',minOrder:''}); load(); }catch(e){er(e);} };
   const toggleCp=async id=>{ try{ const r=await api.patch('/shop/coupons/'+id+'/toggle'); ok(r.data.msg); load(); }catch(e){er(e);} };
   const delCp=async id=>{ if(!confirm('Delete coupon?')) return; try{ await api.delete('/shop/coupons/'+id); ok('Coupon deleted'); load(); }catch(e){er(e);} };
+  const addDeal=async e=>{ e.preventDefault(); try{ await api.post('/shop/deals',df); ok('Flash deal created!'); setDf({productId:'',percent:'',endsAt:''}); load(); }catch(e){er(e);} };
+  const delDeal=async id=>{ if(!confirm('Delete deal?')) return; try{ await api.delete('/shop/deals/'+id); ok('Deal deleted'); load(); }catch(e){er(e);} };
   const delRv=async id=>{ if(!confirm('Delete review?')) return; try{ await api.delete('/shop/reviews/'+id); ok('Review deleted'); load(); }catch(e){er(e);} };
   const valid=orders.filter(o=>o.status!=='cancelled');
   const revenue=valid.reduce((s,o)=>s+(o.total-(o.commission||0)),0);
@@ -38,19 +43,23 @@ export default function SellerDash({user}){
     {l:'Orders Received',v:orders.length,c:'#f59e0b'},
     {l:'Revenue (Net)',v:'৳'+Math.round(revenue).toLocaleString(),c:'#16a34a'},
     {l:'Avg Rating',v:avgR+' ★',c:'#06b6d4'},
-    {l:'Active Coupons',v:coupons.filter(c=>c.active).length,c:'#ec4899'}];
+    {l:'Active Coupons',v:coupons.filter(c=>c.active).length,c:'#ec4899'},
+    {l:'⚡ Live Deals',v:deals.filter(d=>d.active&&new Date(d.endsAt)>new Date()).length,c:'#f97316'}];
   const days=[...Array(7)].map((_,i)=>{const d=new Date(); d.setDate(d.getDate()-(6-i)); return d;});
   const chart=days.map(d=>{const k=d.toISOString().slice(0,10);
     return {day:d.toLocaleDateString('en',{weekday:'short'}), revenue:Math.round(valid.filter(o=>(o.createdAt||'').slice(0,10)===k).reduce((s,o)=>s+(o.total-(o.commission||0)),0))};});
   const topMap={}; valid.forEach(o=>o.items.forEach(i=>{ if(!topMap[i.name]) topMap[i.name]={name:i.name,qty:0,rev:0}; topMap[i.name].qty+=i.qty; topMap[i.name].rev+=i.price*i.qty; }));
   const top=Object.values(topMap).sort((a,b)=>b.qty-a.qty).slice(0,5);
+  const avgDaily=chart.reduce((s,d)=>s+d.revenue,0)/7;
+  const forecast=Math.round(avgDaily*7);
   const s=v=>setF({...f,...v});
   return <div className="dash">
     <div className="dash-head"><div><h2>🏪 Seller Command Center</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
-      <div className="head-actions"><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+      <div className="head-actions"><NotifBell/><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
+    <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
-    <div className="tabs">{['products','orders','coupons','reviews','analytics'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+    <div className="tabs">{['products','orders','deals','coupons','reviews','analytics'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
     {tab==='products'&&<div className="panel">
       <div className="panel-head"><h3>My Products ({products.length})</h3><button className="btn sm" onClick={openAdd}>+ Add Product</button></div>
       <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Warehouse</th><th>Actions</th></tr></thead>
@@ -68,6 +77,19 @@ export default function SellerDash({user}){
         <td>{o.fraudFlag?<span className="badge danger">FLAGGED</span>:<span className="muted">—</span>}</td>
         <td>{o.status==='placed'&&<button className="btn xs" onClick={()=>ship(o._id)}>Mark Shipped</button>}</td></tr>)}</tbody></table></div>
       {orders.length===0&&<p className="empty">No orders yet.</p>}</div>}
+    {tab==='deals'&&<div className="panel">
+      <div className="panel-head"><h3>⚡ Flash Deals ({deals.length})</h3></div>
+      <form onSubmit={addDeal} style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+        <select required value={df.productId} onChange={e=>setDf({...df,productId:e.target.value})} style={{padding:10,borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit'}}>
+          <option value="">Select product</option>{products.map(p=><option key={p._id} value={p._id}>{p.name} — ৳{p.price}</option>)}</select>
+        <input required type="number" min="1" max="90" placeholder="% off" value={df.percent} onChange={e=>setDf({...df,percent:e.target.value})} style={{padding:10,borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit',width:90}}/>
+        <input required type="datetime-local" value={df.endsAt} onChange={e=>setDf({...df,endsAt:e.target.value})} style={{padding:10,borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit'}}/>
+        <button className="btn sm" type="submit">Launch Deal</button></form>
+      <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Product</th><th>Off</th><th>Deal Price</th><th>Ends</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>{deals.map(d=>{const live=d.active&&new Date(d.endsAt)>new Date(); return <tr key={d._id}><td><b>{d.productName}</b></td><td>{d.percent}%</td><td><b>৳{d.dealPrice.toLocaleString()}</b></td>
+        <td>{new Date(d.endsAt).toLocaleString()}</td><td>{live?<span className="badge ok">LIVE</span>:<span className="badge warn">ended</span>}</td>
+        <td><button className="btn xs danger" onClick={()=>delDeal(d._id)}>Delete</button></td></tr>;})}</tbody></table></div>
+      {deals.length===0&&<p className="empty">No flash deals — launch one to boost sales!</p>}</div>}
     {tab==='coupons'&&<div className="panel">
       <div className="panel-head"><h3>🎟️ My Coupons ({coupons.length})</h3></div>
       <form onSubmit={addCoupon} style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
@@ -87,6 +109,10 @@ export default function SellerDash({user}){
         <div style={{fontSize:14,marginTop:4}}>{rv.comment}</div></div>)}
       {reviews.length===0&&<p className="empty">No reviews yet.</p>}</div>}
     {tab==='analytics'&&<>
+      <div className="panel" style={{borderLeft:'4px solid #8b5cf6'}}><h3>🤖 AI Sales Forecast</h3>
+        <p style={{fontSize:15}}>Based on your last 7 days trend, projected revenue for <b>next 7 days</b>:</p>
+        <div className="stat-v" style={{color:'#8b5cf6',fontSize:28}}>৳{forecast.toLocaleString()}</div>
+        <p className="muted" style={{fontSize:12}}>Avg daily: ৳{Math.round(avgDaily).toLocaleString()} · Moving-average model</p></div>
       <div className="panel"><h3>Revenue — Last 7 Days (Net)</h3>
         <div style={{height:260}}><ResponsiveContainer><BarChart data={chart}>
           <CartesianGrid strokeDasharray="3 3" opacity={.2}/><XAxis dataKey="day"/><YAxis/><Tooltip formatter={v=>['৳'+v,'Revenue']}/><Bar dataKey="revenue" fill="#3b82f6" radius={[6,6,0,0]}/></BarChart></ResponsiveContainer></div></div>
