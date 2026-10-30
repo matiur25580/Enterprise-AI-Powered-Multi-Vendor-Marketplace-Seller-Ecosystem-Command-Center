@@ -3,6 +3,7 @@ import api,{logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import NotifBell from '../components/NotifBell';
 import AnnounceBar from '../components/AnnounceBar';
+import ClockStrip from '../components/ClockStrip';
 import './dash.css';
 export default function LogisticsDash({user}){
   const [tab,setTab]=useState('active');
@@ -31,8 +32,9 @@ export default function LogisticsDash({user}){
     <td>{o.status==='placed'&&<button className="btn xs" onClick={()=>upd(o._id,'shipped')}>🚚 Dispatch</button>}
         {o.status==='shipped'&&<button className="btn xs" style={{background:'#16a34a'}} onClick={()=>upd(o._id,'delivered')}>✓ Deliver</button>}</td></tr>;
   return <div className="dash">
-    <div className="dash-head"><div><h2>🚚 Logistics Command</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
+    <div className="dash-head"><div><h2>🚚 Logistics Command</h2><p className="sub">{user.fullName} · <span className="badge shipped">Logistics Partner</span> · <span className="mono">{user.uniqueId}</span></p></div>
       <div className="head-actions"><NotifBell/><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+    <ClockStrip/>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>

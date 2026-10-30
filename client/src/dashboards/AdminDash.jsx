@@ -3,6 +3,7 @@ import api,{logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import NotifBell from '../components/NotifBell';
 import AnnounceBar from '../components/AnnounceBar';
+import ClockStrip from '../components/ClockStrip';
 import './dash.css';
 import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,PieChart,Pie,Cell,Legend} from 'recharts';
 const COLORS=['#3b82f6','#8b5cf6','#16a34a','#f59e0b','#ef4444'];
@@ -35,8 +36,9 @@ export default function AdminDash({user}){
   const rolePie=Object.entries(stats.byRole||{}).map(([name,value])=>({name,value}));
   const statusBar=Object.entries(stats.byStatus||{}).map(([s,v])=>({status:s,orders:v}));
   return <div className="dash">
-    <div className="dash-head"><div><h2>👑 Super Admin</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
+    <div className="dash-head"><div><h2>👑 Super Admin</h2><p className="sub">{user.fullName} · <span className="badge shipped">Super Admin</span> · <span className="mono">{user.uniqueId}</span></p></div>
       <div className="head-actions"><button className="btn sm" onClick={seed}>🌱 Seed Demo Products</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+    <ClockStrip/>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{cards.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>

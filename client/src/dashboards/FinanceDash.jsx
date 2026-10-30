@@ -3,6 +3,7 @@ import api,{logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import NotifBell from '../components/NotifBell';
 import AnnounceBar from '../components/AnnounceBar';
+import ClockStrip from '../components/ClockStrip';
 import './dash.css';
 import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 export default function FinanceDash({user}){
@@ -34,8 +35,9 @@ export default function FinanceDash({user}){
     const os=valid.filter(o=>(o.createdAt||'').slice(0,10)===k);
     return {day:d.toLocaleDateString('en',{weekday:'short'}), gmv:Math.round(os.reduce((s,o)=>s+o.total,0)), commission:Math.round(os.reduce((s,o)=>s+(o.commission||0),0))};});
   return <div className="dash">
-    <div className="dash-head"><div><h2>💰 Finance Control</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
+    <div className="dash-head"><div><h2>💰 Finance Control</h2><p className="sub">{user.fullName} · <span className="badge shipped">Finance</span> · <span className="mono">{user.uniqueId}</span></p></div>
       <div className="head-actions"><NotifBell/><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+    <ClockStrip/>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>

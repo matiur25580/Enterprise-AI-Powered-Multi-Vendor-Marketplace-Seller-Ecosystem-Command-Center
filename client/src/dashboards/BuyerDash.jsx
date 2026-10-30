@@ -3,6 +3,7 @@ import api,{logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import NotifBell from '../components/NotifBell';
 import AnnounceBar from '../components/AnnounceBar';
+import ClockStrip from '../components/ClockStrip';
 import './dash.css';
 const CATS=['All','Electronics','Fashion','Home','Grocery','Beauty','Sports'];
 const stars=n=>'★'.repeat(n||0)+'☆'.repeat(5-(n||0));
@@ -77,8 +78,9 @@ export default function BuyerDash({user}){
     <div className="row"><button className="btn sm" style={{flex:1}} disabled={p.stock<=0} onClick={()=>{add(p); ok(p.name+' added to cart');}}>{p.stock>0?'Add to Cart':'Sold Out'}</button>
     <button className="btn sm ghost" style={{width:'auto'}} onClick={()=>toggleWish(p)}>{wish.includes(p._id)?'❤️':'🤍'}</button></div></div>;};
   return <div className="dash">
-    <div className="dash-head"><div><h2>🛒 Buyer Hub</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
+    <div className="dash-head"><div><h2>🛒 Buyer Hub</h2><p className="sub">{user.fullName} · <span className="badge shipped">Buyer</span> · <span className="mono">{user.uniqueId}</span></p></div>
       <div className="head-actions"><span className="badge warn" style={{fontSize:14}} title={"Cashback "+loyal.rate+"%"}>{loyal.icon} {loyal.tier}</span><span className="badge ok" style={{fontSize:14}}>💰 ৳{Math.round(wallet.balance).toLocaleString()}</span><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+    <ClockStrip/>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>

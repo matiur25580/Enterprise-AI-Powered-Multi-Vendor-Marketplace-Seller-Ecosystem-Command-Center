@@ -64,3 +64,4 @@
 .inv-box h2{color:#111;margin:0 0 4px;} .inv-box table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;color:#111;}
 .inv-box th,.inv-box td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}
 @media print{ body *{visibility:hidden;} .inv-box,.inv-box *{visibility:visible;} .inv-box{position:absolute;top:0;left:0;width:100%;max-width:100%;} .no-print{display:none!important;} }
+.clock-strip{display:flex;gap:18px;align-items:center;justify-content:center;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;font-size:14px;font-weight:700;flex-wrap:wrap;}
