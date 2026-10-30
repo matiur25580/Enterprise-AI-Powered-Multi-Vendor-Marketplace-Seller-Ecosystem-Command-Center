@@ -42,14 +42,21 @@ export default function BuyerDash({user}){
         let cpCode=null;
         if(applied){ const gSub=items.reduce((s,i)=>s+i.price*i.qty,0);
           if(gSub>=applied.minOrder&&(!applied.sellerId||String(applied.sellerId)===k)) cpCode=applied.code; }
-        const r=await api.post('/shop/orders',{items,sellerId:k==='noseller'?undefined:k,warehouse:groups[k][0].warehouse,couponCode:cpCode});
+        let wUse=0; if(useW&&wallet.balance>0){ const gSub=items.reduce((s,i)=>s+i.price*i.qty,0); wUse=Math.min(wallet.balance,gSub); wallet.balance-=wUse; }
+        const r=await api.post('/shop/orders',{items,sellerId:k==='noseller'?undefined:k,warehouse:groups[k][0].warehouse,couponCode:cpCode,walletUsed:+wUse.toFixed(2)});
         msg=r.data.msg; }
-      setCart([]); setApplied(null); setCoupon(''); setCartOpen(false); ok(msg); load(); setTab('orders');
+      setCart([]); setApplied(null); setCoupon(''); setUseW(false); setCartOpen(false); ok(msg); load(); setTab('orders');
     }catch(e){er(e);} };
   const cancel=async id=>{ if(!confirm('Cancel this order?')) return; try{ await api.patch('/shop/orders/'+id+'/cancel'); ok('Order cancelled. Refund will be processed.'); load(); }catch(e){er(e);} };
+  const reqReturn=async e=>{ e.preventDefault(); try{ await api.post('/shop/returns',{orderId:retO._id,reason:retR}); ok('Return request submitted!'); setRetO(null); setRetR(''); load(); }catch(e){er(e);} };
   const openProduct=async p=>{ setViewP(p); try{ const r=await api.get('/shop/reviews/'+p._id); setPReviews(r.data); }catch{ setPReviews([]); } };
   const submitReview=async e=>{ e.preventDefault(); try{ await api.post('/shop/reviews',{productId:rvP._id,rating:rvR,comment:rvC}); ok('Review submitted! Thank you.'); setRvP(null); setRvC(''); setRvR(5); load(); }catch(e){er(e);} };
-  const filtered=products.filter(p=>(cat==='All'||p.category===cat)&&p.name.toLowerCase().includes(q.toLowerCase()));
+  let filtered=products.filter(p=>(cat==='All'||p.category===cat)&&p.name.toLowerCase().includes(q.toLowerCase()));
+  if(minP) filtered=filtered.filter(p=>+priceOf(p)>=+minP);
+  if(maxP) filtered=filtered.filter(p=>+priceOf(p)<=+maxP);
+  if(sort==='lo') filtered=[...filtered].sort((a,b)=>priceOf(a)-priceOf(b));
+  if(sort==='hi') filtered=[...filtered].sort((a,b)=>priceOf(b)-priceOf(a));
+  if(sort==='rt') filtered=[...filtered].sort((a,b)=>((ratings[b._id]?.avg)||0)-((ratings[a._id]?.avg)||0));
   const wishPs=products.filter(p=>wish.includes(p._id));
   const spent=orders.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+o.total,0);
   const stats=[{l:'Products Live',v:products.length,c:'#3b82f6'},{l:'My Orders',v:orders.length,c:'#8b5cf6'},
@@ -67,14 +74,18 @@ export default function BuyerDash({user}){
     <button className="btn sm ghost" style={{width:'auto'}} onClick={()=>toggleWish(p)}>{wish.includes(p._id)?'❤️':'🤍'}</button></div></div>;};
   return <div className="dash">
     <div className="dash-head"><div><h2>🛒 Buyer Hub</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
-      <div className="head-actions"><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+      <div className="head-actions"><span className="badge ok" style={{fontSize:14}}>💰 ৳{Math.round(wallet.balance).toLocaleString()}</span><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
     <div className="tabs">{['shop','wishlist','orders','tracking'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
     {tab==='shop'&&<>
       <div className="shop-bar"><input placeholder="🔍 Search products..." value={q} onChange={e=>setQ(e.target.value)}/>
-        <select value={cat} onChange={e=>setCat(e.target.value)}>{CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+        <select value={cat} onChange={e=>setCat(e.target.value)}>{CATS.map(c=><option key={c}>{c}</option>)}</select>
+        <input type="number" placeholder="Min ৳" value={minP} onChange={e=>setMinP(e.target.value)} style={{width:90,padding:'10px 12px',borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit'}}/>
+        <input type="number" placeholder="Max ৳" value={maxP} onChange={e=>setMaxP(e.target.value)} style={{width:90,padding:'10px 12px',borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit'}}/>
+        <select value={sort} onChange={e=>setSort(e.target.value)} style={{padding:'10px 12px',borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit'}}>
+          <option value="new">Newest</option><option value="lo">Price: Low→High</option><option value="hi">Price: High→Low</option><option value="rt">Top Rated</option></select></div>
       <div className="prod-grid">{filtered.map(Card)}</div>
       {filtered.length===0&&<p className="empty">No products found.</p>}</>}
     {tab==='wishlist'&&<>
@@ -86,8 +97,9 @@ export default function BuyerDash({user}){
         <td>৳{(+o.total).toLocaleString()}{o.discount>0&&<span className="muted" style={{fontSize:11}}> (-৳{o.discount})</span>}</td>
         <td><span className={'badge '+o.status}>{o.status}</span></td>
         <td>{o.status==='placed'&&<button className="btn xs danger" onClick={()=>cancel(o._id)}>Cancel</button>}
-            {o.status==='delivered'&&<button className="btn xs" style={{background:'#f59e0b'}} onClick={()=>setRvP(o)}>⭐ Review</button>}
-            {o.status==='cancelled'&&<span className={'badge '+(o.refundStatus==='done'?'ok':'warn')}>refund: {o.refundStatus}</span>}</td></tr>)}</tbody></table></div>
+            {o.status==='delivered'&&<><button className="btn xs" style={{background:'#f59e0b'}} onClick={()=>setRvP(o)}>⭐ Review</button> <button className="btn xs ghost" onClick={()=>setRetO(o)}>↩ Return</button></>}
+            <button className="btn xs ghost" onClick={()=>setInvO(o)}>🧾 Invoice</button>
+            {o.status==='cancelled'&&<span className={'badge '+(o.refundStatus==='done'?'ok':'warn')}>refund: {o.refundStatus}</span>}<button className="btn xs ghost" onClick={()=>setInvO(o)}>🧾</button></td></tr>)}</tbody></table></div>
       {orders.length===0&&<p className="empty">No orders yet — go shop!</p>}</div>}
     {tab==='tracking'&&<div className="panel"><h3>📦 Track Shipment</h3>
       <div className="shop-bar"><input placeholder="Enter Tracking ID (e.g. TRK...)" value={trackId} onChange={e=>setTrackId(e.target.value)}/></div>
@@ -110,7 +122,8 @@ export default function BuyerDash({user}){
           {applied?<button className="btn sm ghost" onClick={()=>{setApplied(null); setCoupon('');}}>✕ {applied.code}</button>
           :<button className="btn sm" onClick={applyCoupon}>Apply</button>}</div>
         {applied&&<div style={{fontSize:13,color:'#16a34a',marginBottom:8}}>✓ {applied.percent}% off applied (-৳{disc.toLocaleString()})</div>}
-        <div className="cart-total"><span>Total</span><span>৳{(subtotal-disc).toLocaleString()}</span></div>
+        {wallet.balance>0&&<label style={{display:'flex',gap:8,alignItems:'center',fontSize:13,marginBottom:8}}><input type="checkbox" checked={useW} onChange={e=>setUseW(e.target.checked)}/> Use wallet balance (৳{Math.round(wallet.balance).toLocaleString()})</label>}
+        <div className="cart-total"><span>Total</span><span>৳{Math.max(0,subtotal-disc-(useW?Math.min(wallet.balance,subtotal-disc):0)).toLocaleString()}</span></div>
         <button className="btn" onClick={checkout}>Checkout →</button></>}
       <button className="btn ghost" style={{marginTop:8}} onClick={()=>setCartOpen(false)}>Continue Shopping</button>
     </div></>}
@@ -124,6 +137,24 @@ export default function BuyerDash({user}){
       {pReviews.length===0&&<p className="empty">No reviews yet.</p>}
       <div className="row" style={{marginTop:10}}><button className="btn" onClick={()=>{add(viewP); setViewP(null); ok(viewP.name+' added to cart');}}>Add to Cart</button>
       <button className="btn ghost" onClick={()=>setViewP(null)}>Close</button></div></div></div>}
+    {invO&&<div className="modal-bg" onClick={()=>setInvO(null)}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:600}}>
+      <div className="inv-box">
+        <h2>🏪 Marketplace Invoice</h2><p className="muted" style={{fontSize:12}}>Enterprise Multi-Vendor Marketplace · {new Date(invO.createdAt).toLocaleString()}</p>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:13,margin:'10px 0'}}><div><b>Billed To:</b><br/>{user.fullName}<br/>{user.email}</div><div style={{textAlign:'right'}}><b>Tracking ID</b><br/><span className="mono">{invO.trackingId}</span><br/>Status: {invO.status}</div></div>
+        <table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+        <tbody>{invO.items.map((i,x)=><tr key={x}><td>{i.name}</td><td>{i.qty}</td><td>৳{i.price.toLocaleString()}</td><td>৳{(i.price*i.qty).toLocaleString()}</td></tr>)}</tbody></table>
+        <div style={{textAlign:'right',fontSize:14}}>
+          {invO.subtotal?<div>Subtotal: ৳{invO.subtotal.toLocaleString()}</div>:null}
+          {invO.discount>0&&<div>Coupon {invO.couponCode}: -৳{invO.discount.toLocaleString()}</div>}
+          {invO.walletUsed>0&&<div>Wallet: -৳{invO.walletUsed.toLocaleString()}</div>}
+          <div style={{fontSize:18,fontWeight:800}}>Grand Total: ৳{(+invO.total).toLocaleString()}</div></div>
+        <p className="muted" style={{fontSize:11}}>Thank you for shopping with us!</p></div>
+      <div className="row no-print" style={{marginTop:10,justifyContent:'center'}}><button className="btn sm" onClick={()=>window.print()}>🖨️ Print / Save PDF</button><button className="btn sm ghost" onClick={()=>setInvO(null)}>Close</button></div></div></div>}
+    {retO&&<div className="modal-bg" onClick={()=>setRetO(null)}><div className="modal" onClick={e=>e.stopPropagation()}>
+      <h3>↩️ Return Request <span className="mono" style={{fontSize:13}}>{retO.trackingId}</span></h3>
+      <form onSubmit={reqReturn}><div className="field"><label>Reason</label>
+        <textarea required rows="3" value={retR} onChange={e=>setRetR(e.target.value)} placeholder="Keno return korte chao?" style={{padding:10,borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit',width:'100%'}}/></div>
+        <div className="row"><button className="btn" type="submit">Submit Request</button><button className="btn ghost" type="button" onClick={()=>setRetO(null)}>Cancel</button></div></form></div></div>}
     {rvP&&<div className="modal-bg" onClick={()=>setRvP(null)}><div className="modal" onClick={e=>e.stopPropagation()}>
       <h3>⭐ Review Order <span className="mono" style={{fontSize:14}}>{rvP.trackingId}</span></h3>
       <form onSubmit={submitReview}>
