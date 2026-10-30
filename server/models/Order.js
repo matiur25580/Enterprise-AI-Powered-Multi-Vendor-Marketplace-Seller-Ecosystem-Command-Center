@@ -6,5 +6,7 @@ module.exports=mongoose.model('Order',new mongoose.Schema({
   total:Number, commission:Number,
   status:{type:String,enum:['placed','shipped','delivered','cancelled'],default:'placed'},
   fraudFlag:{type:Boolean,default:false},
-  trackingId:String, warehouse:{type:String,default:'WH-Dhaka'}
+  trackingId:String, warehouse:{type:String,default:'WH-Dhaka'},
+  subtotal:{type:Number,default:0}, discount:{type:Number,default:0}, couponCode:String,
+  deliveryNote:String, refundStatus:{type:String,enum:['none','pending','done'],default:'none'}
 },{timestamps:true}));
