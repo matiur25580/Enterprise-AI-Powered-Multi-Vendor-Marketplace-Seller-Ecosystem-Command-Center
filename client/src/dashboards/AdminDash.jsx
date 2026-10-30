@@ -6,22 +6,25 @@ import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,PieCh
 const COLORS=['#3b82f6','#8b5cf6','#16a34a','#f59e0b','#ef4444'];
 export default function AdminDash({user}){
   const [tab,setTab]=useState('overview');
-  const [stats,setStats]=useState(null); const [users,setUsers]=useState([]); const [products,setProducts]=useState([]);
+  const [stats,setStats]=useState(null); const [users,setUsers]=useState([]); const [products,setProducts]=useState([]); const [reviews,setReviews]=useState([]); const [coupons,setCoupons]=useState([]);
   const [msg,setMsg]=useState(null);
-  const load=async()=>{ try{ const [s,u,p]=await Promise.all([api.get('/shop/admin/stats'),api.get('/shop/admin/users'),api.get('/shop/products')]); setStats(s.data); setUsers(u.data); setProducts(p.data); }catch(e){ setMsg({t:'err',x:'Failed to load admin data'}); } };
+  const load=async()=>{ try{ const [s,u,p,rv,cp]=await Promise.all([api.get('/shop/admin/stats'),api.get('/shop/admin/users'),api.get('/shop/products'),api.get('/shop/reviews/all/list'),api.get('/shop/coupons/all/list')]); setStats(s.data); setUsers(u.data); setProducts(p.data); setReviews(rv.data); setCoupons(cp.data); }catch(e){ setMsg({t:'err',x:'Failed to load admin data'}); } };
   useEffect(()=>{load();},[]);
   const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
   const er=e=>setMsg({t:'err',x:e.response?.data?.msg||'Failed'});
   const toggleBlock=async u=>{ if(!confirm((u.isBlocked?'Unblock ':'Block ')+u.fullName+'?')) return;
     try{ const r=await api.patch('/shop/admin/users/'+u._id); ok(r.data.msg); load(); }catch(e){er(e);} };
   const seed=async()=>{ try{ const r=await api.get('/shop/seed'); ok(r.data.msg); load(); }catch(e){er(e);} };
+  const delRv=async id=>{ if(!confirm('Delete review?')) return; try{ await api.delete('/shop/reviews/'+id); ok('Review deleted'); load(); }catch(e){er(e);} };
+  const toggleCp=async id=>{ try{ const r=await api.patch('/shop/coupons/'+id+'/toggle'); ok(r.data.msg); load(); }catch(e){er(e);} };
+  const delCp=async id=>{ if(!confirm('Delete coupon?')) return; try{ await api.delete('/shop/coupons/'+id); ok('Coupon deleted'); load(); }catch(e){er(e);} };
   const delP=async id=>{ if(!confirm('Delete this product?')) return; try{ await api.delete('/shop/products/'+id); ok('Product deleted successfully!'); load(); }catch(e){er(e);} };
   if(!stats) return <div className="dash"><p className="empty">Loading...</p></div>;
   const cards=[
     {l:'Total Users',v:stats.users,c:'#3b82f6'},{l:'Products',v:stats.products,c:'#8b5cf6'},
     {l:'Orders',v:stats.orders,c:'#f59e0b'},{l:'GMV',v:'৳'+Math.round(stats.gmv).toLocaleString(),c:'#16a34a'},
     {l:'Commission Earned',v:'৳'+Math.round(stats.commission).toLocaleString(),c:'#06b6d4'},
-    {l:'Fraud Flagged',v:stats.fraud,c:'#ef4444'}];
+    {l:'Fraud Flagged',v:stats.fraud,c:'#ef4444'},{l:'Reviews',v:stats.reviews||0,c:'#f59e0b'},{l:'Coupons',v:stats.coupons||0,c:'#ec4899'}];
   const rolePie=Object.entries(stats.byRole||{}).map(([name,value])=>({name,value}));
   const statusBar=Object.entries(stats.byStatus||{}).map(([s,v])=>({status:s,orders:v}));
   return <div className="dash">
@@ -29,7 +32,7 @@ export default function AdminDash({user}){
       <div className="head-actions"><button className="btn sm" onClick={seed}>🌱 Seed Demo Products</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <div className="stat-grid">{cards.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
-    <div className="tabs">{['overview','users','products'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+    <div className="tabs">{['overview','users','products','reviews','coupons'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
     {tab==='overview'&&<div className="prod-grid" style={{gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))'}}>
       <div className="panel"><h3>Users by Role</h3><div style={{height:260}}><ResponsiveContainer><PieChart>
         <Pie data={rolePie} dataKey="value" nameKey="name" outerRadius={90} label>{rolePie.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}</Pie>

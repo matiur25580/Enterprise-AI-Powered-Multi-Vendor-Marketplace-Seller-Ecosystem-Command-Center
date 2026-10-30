@@ -5,12 +5,13 @@ import './dash.css';
 import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 export default function FinanceDash({user}){
   const [tab,setTab]=useState('overview');
-  const [fin,setFin]=useState(null); const [payouts,setPayouts]=useState([]); const [orders,setOrders]=useState([]);
+  const [fin,setFin]=useState(null); const [payouts,setPayouts]=useState([]); const [orders,setOrders]=useState([]); const [refunds,setRefunds]=useState([]);
   const [msg,setMsg]=useState(null);
-  const load=async()=>{ try{ const [f,p,o]=await Promise.all([api.get('/shop/finance'),api.get('/shop/finance/payouts'),api.get('/shop/orders')]); setFin(f.data); setPayouts(p.data); setOrders(o.data); }catch(e){ setMsg({t:'err',x:'Failed to load finance data'}); } };
+  const load=async()=>{ try{ const [f,p,o,rf]=await Promise.all([api.get('/shop/finance'),api.get('/shop/finance/payouts'),api.get('/shop/orders'),api.get('/shop/finance/refunds')]); setFin(f.data); setPayouts(p.data); setOrders(o.data); setRefunds(rf.data); }catch(e){ setMsg({t:'err',x:'Failed to load finance data'}); } };
   useEffect(()=>{load();},[]);
   const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
   const er=e=>setMsg({t:'err',x:e.response?.data?.msg||'Failed'});
+  const refundDone=async id=>{ if(!confirm('Mark refund as done?')) return; try{ await api.patch('/shop/finance/refunds/'+id); ok('Refund marked as done'); load(); }catch(e){er(e);} };
   const pay=async m=>{ if(!confirm(`Pay ৳${m.pending.toLocaleString()} to ${m.name}?`)) return;
     try{ await api.post('/shop/finance/payouts/pay',{sellerId:m.sellerId,amount:m.pending}); ok('Payout recorded successfully!'); load(); }catch(e){er(e);} };
   if(!fin) return <div className="dash"><p className="empty">Loading...</p></div>;
@@ -19,7 +20,7 @@ export default function FinanceDash({user}){
     {l:'Platform Commission (10%)',v:'৳'+Math.round(fin.commission).toLocaleString(),c:'#8b5cf6'},
     {l:'Net to Sellers',v:'৳'+Math.round(fin.gmv-fin.commission).toLocaleString(),c:'#16a34a'},
     {l:'Total Orders',v:fin.orders,c:'#f59e0b'},
-    {l:'Fraud Flagged',v:fin.fraud,c:'#ef4444'}];
+    {l:'Fraud Flagged',v:fin.fraud,c:'#ef4444'},{l:'Discounts Given',v:'৳'+Math.round(fin.discount||0).toLocaleString(),c:'#ec4899'},{l:'Refunds Pending',v:refunds.filter(x=>x.refundStatus==='pending').length,c:'#f97316'}];
   const valid=orders.filter(o=>o.status!=='cancelled');
   const days=[...Array(7)].map((_,i)=>{const d=new Date(); d.setDate(d.getDate()-(6-i)); return d;});
   const chart=days.map(d=>{const k=d.toISOString().slice(0,10);
@@ -30,7 +31,7 @@ export default function FinanceDash({user}){
       <div className="head-actions"><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
-    <div className="tabs">{['overview','payouts'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t==='overview'?'Revenue Overview':'Seller Payouts'}</button>)}</div>
+    <div className="tabs">{['overview','payouts','refunds'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t==='overview'?'Revenue Overview':t==='payouts'?'Seller Payouts':'Refunds'}</button>)}</div>
     {tab==='overview'&&<div className="panel"><h3>GMV vs Commission — Last 7 Days</h3>
       <div style={{height:300}}><ResponsiveContainer><BarChart data={chart}>
         <CartesianGrid strokeDasharray="3 3" opacity={.2}/><XAxis dataKey="day"/><YAxis/><Tooltip formatter={v=>['৳'+v]}/>
@@ -43,5 +44,11 @@ export default function FinanceDash({user}){
         <td>{m.pending>0?<span className="badge warn">৳{m.pending.toLocaleString()}</span>:<span className="muted">—</span>}</td>
         <td>{m.pending>0&&<button className="btn xs" style={{background:'#16a34a'}} onClick={()=>pay(m)}>Pay ৳{m.pending.toLocaleString()}</button>}</td></tr>)}</tbody></table></div>
       {payouts.length===0&&<p className="empty">No seller earnings yet.</p>}</div>}
+    {tab==='refunds'&&<div className="panel"><div className="panel-head"><h3>💸 Refunds ({refunds.length})</h3></div>
+      <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Tracking ID</th><th>Buyer</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>{refunds.map(x=><tr key={x._id}><td className="mono">{x.trackingId}</td><td>{x.buyerId?.fullName}<br/><span className="muted" style={{fontSize:12}}>{x.buyerId?.email}</span></td>
+        <td>৳{(+x.total).toLocaleString()}</td><td>{x.refundStatus==='done'?<span className="badge ok">done</span>:<span className="badge warn">pending</span>}</td>
+        <td>{x.refundStatus==='pending'&&<button className="btn xs" style={{background:'#16a34a'}} onClick={()=>refundDone(x._id)}>Mark Refunded</button>}</td></tr>)}</tbody></table></div>
+      {refunds.length===0&&<p className="empty">No refunds.</p>}</div>}
   </div>;
 }

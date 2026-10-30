@@ -10,7 +10,9 @@ export default function LogisticsDash({user}){
   useEffect(()=>{load();},[]);
   const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
   const er=e=>setMsg({t:'err',x:e.response?.data?.msg||'Failed'});
-  const upd=async(id,st)=>{ try{ await api.patch('/shop/orders/'+id,{status:st}); ok(st==='shipped'?'Shipment dispatched!':'Delivered successfully!'); load(); }catch(e){er(e);} };
+  const upd=async(id,st)=>{ let note='';
+    if(st==='delivered'){ note=prompt('Delivery note (optional):','')||''; if(note===null) return; }
+    try{ await api.patch('/shop/orders/'+id,{status:st,deliveryNote:note||undefined}); ok(st==='shipped'?'Shipment dispatched!':'Delivered successfully!'); load(); }catch(e){er(e);} };
   const stats=[
     {l:'Pending Pickup',v:ships.filter(o=>o.status==='placed').length,c:'#f59e0b'},
     {l:'In Transit',v:ships.filter(o=>o.status==='shipped').length,c:'#3b82f6'},
@@ -19,7 +21,7 @@ export default function LogisticsDash({user}){
   const list=(tab==='active'?ships:all.filter(o=>o.status==='delivered')).filter(o=>f==='all'||o.status===f||o.warehouse===f);
   const Row=o=><tr key={o._id}><td className="mono">{o.trackingId||'-'}</td>
     <td>{o.buyerId?.fullName||'—'}</td><td>{o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td>
-    <td>{o.warehouse}</td><td><span className={'badge '+o.status}>{o.status}</span></td>
+    <td>{o.warehouse}</td><td><span className={'badge '+o.status}>{o.status}</span>{o.deliveryNote&&<div className="muted" style={{fontSize:11}}>📝 {o.deliveryNote}</div>}</td>
     <td>{o.fraudFlag?<span className="badge danger">FLAGGED</span>:<span className="muted">—</span>}</td>
     <td>{o.status==='placed'&&<button className="btn xs" onClick={()=>upd(o._id,'shipped')}>🚚 Dispatch</button>}
         {o.status==='shipped'&&<button className="btn xs" style={{background:'#16a34a'}} onClick={()=>upd(o._id,'delivered')}>✓ Deliver</button>}</td></tr>;
