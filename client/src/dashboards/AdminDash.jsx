@@ -1,11 +1,52 @@
-import {useEffect,useState} from 'react'; import axios from 'axios';
-const API=import.meta.env.VITE_API_URL||'http://localhost:5000/api';
-export default function AdminDash(){ const [d,setD]=useState(null); const [ps,setPs]=useState([]);
-  const tok=()=>({headers:{Authorization:'Bearer '+localStorage.getItem('mp-token')}});
-  useEffect(()=>{ axios.get(`${API}/shop/finance`,tok()).then(r=>setD(r.data)); axios.get(`${API}/shop/products`).then(r=>setPs(r.data)); },[]);
-  return <div><h3>👑 Super Admin — Full Command</h3>
-  {d&&<div className="feats" style={{padding:0,marginTop:12,justifyContent:'flex-start'}}>
-  <div className="feat"><h4>৳{d.gmv}</h4><p>GMV</p></div><div className="feat"><h4>৳{d.commission}</h4><p>Commission</p></div>
-  <div className="feat"><h4>{d.orders}</h4><p>Orders</p></div><div className="feat"><h4>{d.fraud}</h4><p>Fraud flags</p></div>
-  <div className="feat"><h4>{ps.length}</h4><p>Products live</p></div></div>}
-  <p style={{marginTop:14,color:'var(--muted)'}}>Fraud detection: 10+ qty in one order auto-flagged. Seller KYC, disputes & announcements — next step.</p></div>; }
+import {useEffect,useState} from 'react';
+import api,{logout} from '../api';
+import ThemeToggle from '../components/ThemeToggle';
+import './dash.css';
+import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,PieChart,Pie,Cell,Legend} from 'recharts';
+const COLORS=['#3b82f6','#8b5cf6','#16a34a','#f59e0b','#ef4444'];
+export default function AdminDash({user}){
+  const [tab,setTab]=useState('overview');
+  const [stats,setStats]=useState(null); const [users,setUsers]=useState([]); const [products,setProducts]=useState([]);
+  const [msg,setMsg]=useState(null);
+  const load=async()=>{ try{ const [s,u,p]=await Promise.all([api.get('/shop/admin/stats'),api.get('/shop/admin/users'),api.get('/shop/products')]); setStats(s.data); setUsers(u.data); setProducts(p.data); }catch(e){ setMsg({t:'err',x:'Failed to load admin data'}); } };
+  useEffect(()=>{load();},[]);
+  const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
+  const er=e=>setMsg({t:'err',x:e.response?.data?.msg||'Failed'});
+  const toggleBlock=async u=>{ if(!confirm((u.isBlocked?'Unblock ':'Block ')+u.fullName+'?')) return;
+    try{ const r=await api.patch('/shop/admin/users/'+u._id); ok(r.data.msg); load(); }catch(e){er(e);} };
+  const seed=async()=>{ try{ const r=await api.get('/shop/seed'); ok(r.data.msg); load(); }catch(e){er(e);} };
+  const delP=async id=>{ if(!confirm('Delete this product?')) return; try{ await api.delete('/shop/products/'+id); ok('Product deleted successfully!'); load(); }catch(e){er(e);} };
+  if(!stats) return <div className="dash"><p className="empty">Loading...</p></div>;
+  const cards=[
+    {l:'Total Users',v:stats.users,c:'#3b82f6'},{l:'Products',v:stats.products,c:'#8b5cf6'},
+    {l:'Orders',v:stats.orders,c:'#f59e0b'},{l:'GMV',v:'৳'+Math.round(stats.gmv).toLocaleString(),c:'#16a34a'},
+    {l:'Commission Earned',v:'৳'+Math.round(stats.commission).toLocaleString(),c:'#06b6d4'},
+    {l:'Fraud Flagged',v:stats.fraud,c:'#ef4444'}];
+  const rolePie=Object.entries(stats.byRole||{}).map(([name,value])=>({name,value}));
+  const statusBar=Object.entries(stats.byStatus||{}).map(([s,v])=>({status:s,orders:v}));
+  return <div className="dash">
+    <div className="dash-head"><div><h2>👑 Super Admin</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
+      <div className="head-actions"><button className="btn sm" onClick={seed}>🌱 Seed Demo Products</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+    {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
+    <div className="stat-grid">{cards.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
+    <div className="tabs">{['overview','users','products'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+    {tab==='overview'&&<div className="prod-grid" style={{gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))'}}>
+      <div className="panel"><h3>Users by Role</h3><div style={{height:260}}><ResponsiveContainer><PieChart>
+        <Pie data={rolePie} dataKey="value" nameKey="name" outerRadius={90} label>{rolePie.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}</Pie>
+        <Tooltip/><Legend/></PieChart></ResponsiveContainer></div></div>
+      <div className="panel"><h3>Orders by Status</h3><div style={{height:260}}><ResponsiveContainer><BarChart data={statusBar}>
+        <CartesianGrid strokeDasharray="3 3" opacity={.2}/><XAxis dataKey="status"/><YAxis allowDecimals={false}/><Tooltip/>
+        <Bar dataKey="orders" fill="#3b82f6" radius={[6,6,0,0]}/></BarChart></ResponsiveContainer></div></div></div>}
+    {tab==='users'&&<div className="panel"><div className="panel-head"><h3>All Users ({users.length})</h3></div>
+      <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Unique ID</th><th>Verified</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>{users.map(u=><tr key={u._id}><td><b>{u.fullName}</b></td><td>{u.email}</td>
+        <td><span className="badge shipped">{u.role}</span></td><td className="mono">{u.uniqueId}</td>
+        <td>{u.isVerified?<span className="badge ok">✓</span>:<span className="badge warn">pending</span>}</td>
+        <td>{u.isBlocked?<span className="badge danger">BLOCKED</span>:<span className="badge ok">active</span>}</td>
+        <td><button className="btn xs" style={u.isBlocked?{background:'#16a34a'}:{background:'#ef4444'}} onClick={()=>toggleBlock(u)}>{u.isBlocked?'Unblock':'Block'}</button></td></tr>)}</tbody></table></div></div>}
+    {tab==='products'&&<div className="panel"><div className="panel-head"><h3>All Products ({products.length})</h3></div>
+      <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Warehouse</th><th>Action</th></tr></thead>
+      <tbody>{products.map(p=><tr key={p._id}><td><b>{p.name}</b></td><td>{p.category}</td><td>৳{(+p.price).toLocaleString()}</td><td>{p.stock}</td><td>{p.warehouse}</td>
+        <td><button className="btn xs danger" onClick={()=>delP(p._id)}>Delete</button></td></tr>)}</tbody></table></div></div>}
+  </div>;
+}
