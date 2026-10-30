@@ -50,7 +50,8 @@ export default function BuyerDash({user}){
     }catch(e){er(e);} };
   const cancel=async id=>{ if(!confirm('Cancel this order?')) return; try{ await api.patch('/shop/orders/'+id+'/cancel'); ok('Order cancelled. Refund will be processed.'); load(); }catch(e){er(e);} };
   const reqReturn=async e=>{ e.preventDefault(); try{ await api.post('/shop/returns',{orderId:retO._id,reason:retR}); ok('Return request submitted!'); setRetO(null); setRetR(''); load(); }catch(e){er(e);} };
-  const openProduct=async p=>{ setViewP(p); try{ const r=await api.get('/shop/reviews/'+p._id); setPReviews(r.data); }catch{ setPReviews([]); } };
+  const openProduct=async p=>{ try{ const _rv=[p,...rv.filter(x=>x._id!==p._id)].slice(0,10);
+    localStorage.setItem('mrv',JSON.stringify(_rv)); setRv(_rv); }catch{}; setViewP(p); try{ const r=await api.get('/shop/reviews/'+p._id); setPReviews(r.data); }catch{ setPReviews([]); } };
   const submitReview=async e=>{ e.preventDefault(); try{ await api.post('/shop/reviews',{productId:rvP._id,rating:rvR,comment:rvC}); ok('Review submitted! Thank you.'); setRvP(null); setRvC(''); setRvR(5); load(); }catch(e){er(e);} };
   let filtered=products.filter(p=>(cat==='All'||p.category===cat)&&p.name.toLowerCase().includes(q.toLowerCase()));
   if(minP) filtered=filtered.filter(p=>+priceOf(p)>=+minP);
@@ -143,6 +144,17 @@ export default function BuyerDash({user}){
       {pReviews.length===0&&<p className="empty">No reviews yet.</p>}
       <div className="row" style={{marginTop:10}}><button className="btn" onClick={()=>{add(viewP); setViewP(null); ok(viewP.name+' added to cart');}}>Add to Cart</button>
       <button className="btn ghost" onClick={()=>setViewP(null)}>Close</button></div></div></div>}
+    {refOpen&&<div className="modal-bg" onClick={()=>setRefOpen(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
+      <h3>🎁 Refer & Earn</h3>
+      <p className="muted" style={{fontSize:13}}>Tomar code diye friend apply korle <b>duijonei ৳{refData.bonus||50} bonus</b> pabe!</p>
+      <div style={{display:'flex',gap:8,alignItems:'center',margin:'12px 0'}}>
+        <span className="mono" style={{fontSize:20,letterSpacing:2}}>{refData.code||'...'}</span>
+        <button className="btn sm" onClick={()=>{navigator.clipboard.writeText(refData.code||'');ok('Code copied!');}}>Copy</button></div>
+      <p className="muted" style={{fontSize:12}}>Tomar code use koreche: {refData.used||0} jon</p>
+      <div className="field"><label>Friend er code thakle apply koro</label>
+        <div style={{display:'flex',gap:8}}><input value={refCode} onChange={e=>setRefCode(e.target.value)} placeholder="REFXXXXXX" style={{flex:1,padding:'10px 12px',borderRadius:10,border:'1px solid var(--border)',background:'var(--card)',color:'inherit'}}/>
+        <button className="btn sm" onClick={async()=>{try{const r=await api.post('/shop/referral/apply',{code:refCode});ok(r.data.msg);setRefCode('');const m=await api.get('/shop/referral/mine');setRefData(m.data);}catch(e){er(e);}}}>Apply</button></div></div>
+      <div className="row" style={{marginTop:10}}><button className="btn ghost sm" onClick={()=>setRefOpen(false)}>Close</button></div></div></div>}
     {invO&&<div className="modal-bg" onClick={()=>setInvO(null)}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:600}}>
       <div className="inv-box">
         <h2>🏪 Marketplace Invoice</h2><p className="muted" style={{fontSize:12}}>Enterprise Multi-Vendor Marketplace · {new Date(invO.createdAt).toLocaleString()}</p>

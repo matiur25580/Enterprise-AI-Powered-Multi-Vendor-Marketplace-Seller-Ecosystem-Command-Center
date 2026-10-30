@@ -24,6 +24,7 @@ export default function AdminDash({user}){
   const delCp=async id=>{ if(!confirm('Delete coupon?')) return; try{ await api.delete('/shop/coupons/'+id); ok('Coupon deleted'); load(); }catch(e){er(e);} };
   const addAnn=async e=>{ e.preventDefault(); try{ await api.post('/shop/announcements',af); ok('Announcement published!'); setAf({title:'',body:''}); load(); }catch(e){er(e);} };
   const delAnn=async id=>{ if(!confirm('Delete announcement?')) return; try{ await api.delete('/shop/announcements/'+id); ok('Deleted'); load(); }catch(e){er(e);} };
+  const saveCfg=async()=>{ try{ const r=await api.patch('/shop/admin/config',cfg); setCfg(r.data.c); ok(r.data.msg); }catch(e){er(e);} };
   const kycAct=async(id,st)=>{ if(!confirm('KYC '+st+'?')) return; try{ await api.patch('/shop/admin/kyc/'+id,{status:st}); ok('KYC '+st); load(); }catch(e){er(e);} };
   const featP=async id=>{ try{ const r=await api.patch('/shop/products/'+id+'/feature'); ok(r.data.msg); load(); }catch(e){er(e);} };
   const delP=async id=>{ if(!confirm('Delete this product?')) return; try{ await api.delete('/shop/products/'+id); ok('Product deleted successfully!'); load(); }catch(e){er(e);} };
@@ -42,7 +43,7 @@ export default function AdminDash({user}){
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{cards.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
-    <div className="tabs">{['overview','activity','users','products','reviews','coupons','announce'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+    <div className="tabs">{['overview','activity','users','products','reviews','coupons','settings','announce'].map(t=><button key={t} className={'tab'+(tab===t?' active':'')} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
     {tab==='activity'&&<div className="panel"><div className="panel-head"><h3>📋 Live Activity Feed</h3></div>
       {acts.map((a,i)=><div key={i} style={{borderBottom:'1px solid var(--border)',padding:'10px 4px',display:'flex',gap:10}}>
         <span style={{fontSize:20}}>{a.icon}</span><div><div style={{fontSize:14}}>{a.text}</div><div className="muted" style={{fontSize:11}}>{new Date(a.at).toLocaleString()}</div></div></div>)}
