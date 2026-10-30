@@ -8,5 +8,6 @@ module.exports=mongoose.model('Order',new mongoose.Schema({
   fraudFlag:{type:Boolean,default:false},
   trackingId:String, warehouse:{type:String,default:'WH-Dhaka'},
   subtotal:{type:Number,default:0}, discount:{type:Number,default:0}, couponCode:String,
+  walletUsed:{type:Number,default:0},
   deliveryNote:String, refundStatus:{type:String,enum:['none','pending','done'],default:'none'}
 },{timestamps:true}));
