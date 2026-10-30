@@ -64,8 +64,12 @@ export default function BuyerDash({user}){
   const tOrder=orders.find(o=>(o.trackingId||'').toUpperCase()===(trackId||'').trim().toUpperCase());
   const steps=['placed','shipped','delivered'];
   const disc=applied?+((subtotal*applied.percent)/100).toFixed(2):0;
+  const badges=p=>{ const b=[]; const sold=pstats[p.name]||0;
+    if(sold>=10) b.push('🔥 Hot'); if(Date.now()-new Date(p.createdAt).getTime()<7*864e5) b.push('✨ New'); if(dealFor(p._id)) b.push('⚡ Sale');
+    return b; };
   const Card=p=>{const rt=ratings[p._id];return <div className="prod-card" key={p._id}>
-    <div className="prod-cat">{p.category}</div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="prod-cat">{p.category}</div>
+    <div style={{fontSize:11}}>{badges(p).map((b,i)=><span key={i} style={{marginLeft:4}}>{b}</span>)}</div></div>
     <h4 style={{cursor:'pointer'}} onClick={()=>openProduct(p)}>{p.name}</h4>
     {rt&&<div style={{color:'#f59e0b',fontSize:13}}>{stars(Math.round(rt.avg))} <span className="muted" style={{color:'inherit',opacity:.6}}>({rt.avg} · {rt.count})</span></div>}
     <div className="prod-price">৳{(+p.price).toLocaleString()}</div>

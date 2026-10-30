@@ -26,6 +26,9 @@ export default function SellerDash({user}){
       if(editing){ await api.put('/shop/products/'+editing,{...f,price:+f.price,stock:+f.stock}); ok('Product updated successfully!'); }
       else { await api.post('/shop/products',{...f,price:+f.price,stock:+f.stock}); ok('Product added successfully!'); }
       setShowForm(false); load(); }catch(e){er(e);} };
+  const expSales=()=>{ const rows=[['TrackingID','Items','Total','Commission','Net','Status','Date'],
+    ...orders.map(o=>[o.trackingId,'"'+o.items.map(i=>i.name+'x'+i.qty).join('; ')+'"',o.total,(o.commission||0),+(o.total-(o.commission||0)).toFixed(2),o.status,(o.createdAt||'').slice(0,10)])];
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'})); a.download='sales-report.csv'; a.click(); };
   const del=async id=>{ if(!confirm('Delete this product?')) return; try{ await api.delete('/shop/products/'+id); ok('Product deleted successfully!'); load(); }catch(e){er(e);} };
   const ship=async id=>{ try{ await api.patch('/shop/orders/'+id,{status:'shipped'}); ok('Order marked as shipped!'); load(); }catch(e){er(e);} };
   const addCoupon=async e=>{ e.preventDefault(); try{ await api.post('/shop/coupons',cf); ok('Coupon created!'); setCf({code:'',percent:'',minOrder:''}); load(); }catch(e){er(e);} };
@@ -68,7 +71,7 @@ export default function SellerDash({user}){
         <td><button className="btn xs" onClick={()=>openEdit(p)}>Edit</button> <button className="btn xs danger" onClick={()=>del(p._id)}>Delete</button></td></tr>)}</tbody></table></div>
       {products.length===0&&<p className="empty">No products yet — add your first product!</p>}</div>}
     {tab==='orders'&&<div className="panel">
-      <div className="panel-head"><h3>Orders Received ({orders.length})</h3></div>
+      <div className="panel-head"><h3>Orders Received ({orders.length})</h3><button className="btn xs" onClick={expSales}>⬇ Sales CSV</button></div>
       <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Tracking ID</th><th>Items</th><th>Total</th><th>Coupon</th><th>Status</th><th>Fraud</th><th>Action</th></tr></thead>
       <tbody>{orders.map(o=><tr key={o._id}><td className="mono">{o.trackingId||'-'}</td><td>{o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td>
         <td>৳{(+o.total).toLocaleString()}{o.discount>0&&<span className="muted" style={{fontSize:11}}> (-৳{o.discount})</span>}</td>

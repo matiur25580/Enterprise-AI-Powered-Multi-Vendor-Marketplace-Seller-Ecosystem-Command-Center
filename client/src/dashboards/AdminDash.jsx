@@ -23,6 +23,7 @@ export default function AdminDash({user}){
   const delCp=async id=>{ if(!confirm('Delete coupon?')) return; try{ await api.delete('/shop/coupons/'+id); ok('Coupon deleted'); load(); }catch(e){er(e);} };
   const addAnn=async e=>{ e.preventDefault(); try{ await api.post('/shop/announcements',af); ok('Announcement published!'); setAf({title:'',body:''}); load(); }catch(e){er(e);} };
   const delAnn=async id=>{ if(!confirm('Delete announcement?')) return; try{ await api.delete('/shop/announcements/'+id); ok('Deleted'); load(); }catch(e){er(e);} };
+  const featP=async id=>{ try{ const r=await api.patch('/shop/products/'+id+'/feature'); ok(r.data.msg); load(); }catch(e){er(e);} };
   const delP=async id=>{ if(!confirm('Delete this product?')) return; try{ await api.delete('/shop/products/'+id); ok('Product deleted successfully!'); load(); }catch(e){er(e);} };
   if(!stats) return <div className="dash"><p className="empty">Loading...</p></div>;
   const cards=[
@@ -60,6 +61,6 @@ export default function AdminDash({user}){
     {tab==='products'&&<div className="panel"><div className="panel-head"><h3>All Products ({products.length})</h3></div>
       <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Warehouse</th><th>Action</th></tr></thead>
       <tbody>{products.map(p=><tr key={p._id}><td><b>{p.name}</b></td><td>{p.category}</td><td>৳{(+p.price).toLocaleString()}</td><td>{p.stock}</td><td>{p.warehouse}</td>
-        <td><button className="btn xs danger" onClick={()=>delP(p._id)}>Delete</button></td></tr>)}</tbody></table></div></div>}
+        <td>{p.featured&&<span className="badge warn">⭐ featured</span>} <button className="btn xs" onClick={()=>featP(p._id)}>{p.featured?'Unfeature':'Feature'}</button> <button className="btn xs danger" onClick={()=>delP(p._id)}>Delete</button></td></tr>)}</tbody></table></div></div>}
   </div>;
 }
