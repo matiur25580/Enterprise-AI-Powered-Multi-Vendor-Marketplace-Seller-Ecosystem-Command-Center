@@ -1,0 +1,37 @@
+.dash{max-width:1100px;margin:0 auto;padding:16px;}
+.dash-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.dash-head h2{margin:0;}
+.head-actions{display:flex;gap:8px;align-items:center;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+.stat-v{font-size:22px;font-weight:800;}
+.stat-l{font-size:12px;opacity:.7;margin-top:4px;}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-weight:600;color:inherit;}
+.tab.active{background:#3b82f6;border-color:#3b82f6;color:#fff;}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.panel-head h3{margin:0;}
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;}
+.tbl th,.tbl td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.tbl th{opacity:.7;font-size:12px;text-transform:uppercase;}
+.badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;}
+.badge.placed{background:rgba(245,158,11,.15);color:#f59e0b;}
+.badge.shipped{background:rgba(59,130,246,.15);color:#3b82f6;}
+.badge.delivered{background:rgba(22,163,74,.15);color:#16a34a;}
+.badge.cancelled{background:rgba(239,68,68,.15);color:#ef4444;}
+.badge.warn{background:rgba(245,158,11,.18);color:#f59e0b;}
+.badge.danger{background:rgba(239,68,68,.15);color:#ef4444;}
+.badge.ok{background:rgba(22,163,74,.15);color:#16a34a;}
+.mono{font-family:monospace;}
+.muted{opacity:.5;}
+.empty{text-align:center;opacity:.6;padding:18px;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:440px;}
+.modal h3{margin-top:0;}
+.row{display:flex;gap:8px;}
+.btn.sm{width:auto;padding:10px 16px;}
+.btn.xs{width:auto;padding:6px 12px;font-size:13px;}
+.btn.danger{background:#ef4444;}
+.btn.ghost{background:transparent;border:1px solid var(--border);}

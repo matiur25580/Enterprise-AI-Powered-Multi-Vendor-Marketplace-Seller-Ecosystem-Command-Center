@@ -1,8 +1,13 @@
+import {useEffect,useState} from 'react';
+import {getUser,logout} from '../api';
 import ThemeToggle from '../components/ThemeToggle';
-import BuyerDash from '../dashboards/BuyerDash'; import SellerDash from '../dashboards/SellerDash';
-import LogisticsDash from '../dashboards/LogisticsDash'; import FinanceDash from '../dashboards/FinanceDash'; import AdminDash from '../dashboards/AdminDash';
-const TITLES={buyer:'Buyer Dashboard',seller:'Seller Dashboard',logistics:'Logistics Dashboard',finance:'Finance Dashboard',admin:'Super Admin Dashboard'};
-export default function Dashboard(){ const u=JSON.parse(localStorage.getItem('mp-user')||'null');
-  if(!u){ location.href='/login'; return null; }
-  const R={buyer:<BuyerDash/>,seller:<SellerDash/>,logistics:<LogisticsDash/>,finance:<FinanceDash/>,admin:<AdminDash/>}[u.role]||<BuyerDash/>;
-  return <div style={{padding:20,maxWidth:900,margin:'0 auto'}}><div className="card" style={{maxWidth:'100%',marginBottom:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><b>{TITLES[u.role]}</b><br/><small style={{color:'var(--muted)'}}>{u.fullName} | {u.uniqueId}</small></div><ThemeToggle/></div><div className="card" style={{maxWidth:'100%'}}>{R}<button className="btn" style={{marginTop:18,background:'#6b7280'}} onClick={()=>{localStorage.clear();location.href='/login';}}>Logout</button></div></div>; }
+import SellerDash from '../dashboards/SellerDash';
+const Soon=({role})=>{const u=getUser();return <div className="page"><div className="card"><ThemeToggle/><h2>{role} Dashboard</h2><p className="sub">{u?.fullName} · {u?.uniqueId}</p><p style={{textAlign:'center',opacity:.6}}>Coming in next step...</p><button className="btn" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>;};
+export default function Dashboard(){
+  const [u,setU]=useState(null);
+  useEffect(()=>{const x=getUser(); if(!x) location.href='/login'; else setU(x);},[]);
+  if(!u) return null;
+  if(u.role==='seller') return <SellerDash user={u}/>;
+  const label={buyer:'Buyer',logistics:'Logistics Partner',finance:'Finance',admin:'Super Admin'}[u.role]||u.role;
+  return <Soon role={label}/>;
+}
