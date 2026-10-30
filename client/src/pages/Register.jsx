@@ -8,9 +8,9 @@ export default function Register(){ const nav=useNavigate();
     if(!/^\d{8}$/.test(f.dob)) return setMsg({t:'err',x:'DOB must be DDMMYYYY (8 digits)'});
     setLoading(true);
     try{ const {data}=await axios.post(`${API}/auth/register`,{fullName:f.fullName,email:f.email,contact:f.contact,dob:f.dob,role:f.role,password:f.password});
-      localStorage.setItem('mp-pending-email',f.email);
-      if(data.resend){ setMsg({t:'ok',x:data.msg}); setTimeout(()=>nav('/verify-otp'),1200); }
-      else { setMsg({t:'ok',x:`Registered! Your Unique ID: ${data.uniqueId}. Verifying OTP...`}); setTimeout(()=>nav('/verify-otp'),1200); }
+      localStorage.setItem('mp-pending',JSON.stringify({email:f.email,role:f.role}));
+      setMsg({t:'ok',x:data.resend?data.msg:`Registered! Your Unique ID: ${data.uniqueId}. Verifying OTP...`});
+      setTimeout(()=>nav('/verify-otp',{state:{email:f.email,role:f.role}}),1200);
     }catch(e){ setMsg({t:'err',x:e.response?.data?.msg||'Registration failed'}); } finally{ setLoading(false); } };
   const s=v=>setF({...f,...v});
   return <div className="page"><div className="card"><ThemeToggle/>

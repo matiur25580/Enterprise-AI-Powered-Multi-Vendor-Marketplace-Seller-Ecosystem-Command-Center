@@ -1,13 +1,16 @@
-import { useState, useRef, useEffect } from 'react'; import { useNavigate } from 'react-router-dom'; import axios from 'axios'; import ThemeToggle from '../components/ThemeToggle';
+import { useState, useRef, useEffect } from 'react'; import { useNavigate, useLocation, Link } from 'react-router-dom'; import axios from 'axios'; import ThemeToggle from '../components/ThemeToggle';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-export default function VerifyOtp(){ const nav=useNavigate(); const email=localStorage.getItem('mp-pending-email');
+export default function VerifyOtp(){ const nav=useNavigate(); const loc=useLocation();
+  const stored=(()=>{ try{return JSON.parse(localStorage.getItem('mp-pending')||'{}')}catch{return{}} })();
+  const email=loc.state?.email||stored.email||localStorage.getItem('mp-pending-email')||'';
+  const role=loc.state?.role||stored.role||'buyer';
   const [boxes,setBoxes]=useState(['','','','','','']); const [msg,setMsg]=useState(null); const [sec,setSec]=useState(300); const refs=useRef([]);
   useEffect(()=>{ if(sec<=0) return; const t=setTimeout(()=>setSec(s=>s-1),1000); return ()=>clearTimeout(t); },[sec]);
   const ch=(i,v)=>{ if(!/^\d?$/.test(v)) return; const b=[...boxes]; b[i]=v; setBoxes(b); if(v&&i<5) refs.current[i+1]?.focus(); };
   const verify=async()=>{ const otp=boxes.join(''); if(otp.length<6) return setMsg({t:'err',x:'Enter 6-digit OTP'});
-    try{ const {data}=await axios.post(`${API}/auth/verify-register`,{email,otp}); setMsg({t:'ok',x:data.msg+' Redirecting to login...'}); setTimeout(()=>nav('/login'),1200);
+    try{ const {data}=await axios.post(`${API}/auth/verify-register`,{email,otp,role}); setMsg({t:'ok',x:data.msg+' Redirecting to login...'}); setTimeout(()=>nav('/login'),1200);
     }catch(e){ setMsg({t:'err',x:e.response?.data?.msg||'Verification failed'}); } };
-  const resend=async()=>{ try{ await axios.post(`${API}/auth/resend-verification`,{email}); setSec(300); setMsg({t:'ok',x:'New OTP sent!'}); }catch(e){ setMsg({t:'err',x:'Resend failed'}); } };
+  const resend=async()=>{ try{ await axios.post(`${API}/auth/resend-verification`,{email,role}); setSec(300); setMsg({t:'ok',x:'New OTP sent!'}); }catch(e){ setMsg({t:'err',x:e.response?.data?.msg||'Resend failed'}); } };
   const mm=String(Math.floor(sec/60)).padStart(2,'0'), ss=String(sec%60).padStart(2,'0');
   return <div className="page"><div className="card"><ThemeToggle/>
     <h2>Verify OTP</h2><p className="sub">Sent to {email}</p>
@@ -16,4 +19,5 @@ export default function VerifyOtp(){ const nav=useNavigate(); const email=localS
     <div className="timer">{sec>0?`Resend available in ${mm}:${ss}`:'OTP expired'}</div>
     <button className="btn" onClick={verify}>Verify</button>
     {sec===0&&<button className="btn" style={{background:'#6b7280',marginTop:8}} onClick={resend}>Resend OTP</button>}
+    <div className="link-row"><span></span><Link to="/login">Back to Login</Link></div>
   </div></div>; }
