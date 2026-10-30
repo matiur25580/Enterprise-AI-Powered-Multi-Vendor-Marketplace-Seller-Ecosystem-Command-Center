@@ -4,7 +4,7 @@ const sendEmail = require('../utils/sendEmail'); const genId = require('../utils
 const otpHtml = (o)=>`<div style="font-family:sans-serif"><h2>Marketplace Verification</h2><p>Your 6-digit OTP (valid 5 minutes):</p><h1 style="letter-spacing:8px">${o}</h1></div>`;
 const newOtp = async (email,purpose)=>{ const otp=Math.floor(100000+Math.random()*900000).toString();
   await Otp.deleteMany({email}); await Otp.create({email,otp,purpose});
-  try{ await sendEmail(email,purpose==='register'?'Verify your Marketplace account':'Password Reset OTP',otpHtml(otp)); }catch(e){ console.log('mail err',e.message); } return otp; };
+  sendEmail(email,purpose==='register'?'Verify your Marketplace account':'Password Reset OTP',otpHtml(otp)).catch(e=>console.log('mail err',e.message)); return otp; };
 r.post('/register', async (req,res)=>{ try{ const {fullName,email,contact,dob,role,password}=req.body;
   const ex=await User.findOne({email});
   if(ex){ if(!ex.isVerified){ await newOtp(email,'register'); return res.json({msg:'Account already exists but not verified. New OTP sent to email',resend:true}); }
