@@ -10,7 +10,7 @@
 
 | Service | URL |
 |---|---|
-| 🌐 **Frontend** (Vercel) | `https://marketplace-ecosystem.vercel.app <!-- ⚠️ Vercel dashboard theke apnar asol URL niye ekhane bosan -->
+| 🌐 **Frontend** (Vercel) | `https://marketplace-ecosystem.vercel.app` <!-- ⚠️ Vercel dashboard theke asol URL niye replace korun -->
 | ⚙️ **Backend API** (Render) | `https://enterprise-ai-powered-multi-vendor.onrender.com` |
 | 📦 **GitHub** | `https://github.com/matiur25580/Enterprise-AI-Powered-Multi-Vendor-Marketplace-Seller-Ecosystem-Command-Center` |
 
