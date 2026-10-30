@@ -35,3 +35,28 @@
 .btn.xs{width:auto;padding:6px 12px;font-size:13px;}
 .btn.danger{background:#ef4444;}
 .btn.ghost{background:transparent;border:1px solid var(--border);}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+.prod-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;}
+.prod-cat{font-size:11px;text-transform:uppercase;opacity:.6;letter-spacing:1px;}
+.prod-card h4{margin:0;font-size:15px;}
+.prod-price{font-size:18px;font-weight:800;color:#3b82f6;}
+.prod-meta{font-size:12px;opacity:.7;}
+.shop-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.shop-bar input,.shop-bar select{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:inherit;}
+.shop-bar input{flex:1;min-width:160px;}
+.cart-fab{position:relative;}
+.cart-count{position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(380px,92vw);background:var(--card);border-left:1px solid var(--border);z-index:61;display:flex;flex-direction:column;padding:16px;}
+.drawer h3{margin-top:0;}
+.cart-items{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin:10px 0;}
+.cart-item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:14px;}
+.qty{display:flex;align-items:center;gap:8px;}
+.qty button{width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:transparent;color:inherit;cursor:pointer;font-weight:800;}
+.cart-total{display:flex;justify-content:space-between;font-size:17px;font-weight:800;margin:10px 0;}
+.timeline{display:flex;align-items:flex-start;margin:18px 0;}
+.t-step{flex:1;text-align:center;}
+.t-dot{width:34px;height:34px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-weight:800;border:2px solid var(--border);background:var(--card);}
+.t-step.done .t-dot{background:#16a34a;border-color:#16a34a;color:#fff;}
+.t-step.now .t-dot{border-color:#3b82f6;color:#3b82f6;}
+.t-lbl{font-size:12px;text-transform:capitalize;}
