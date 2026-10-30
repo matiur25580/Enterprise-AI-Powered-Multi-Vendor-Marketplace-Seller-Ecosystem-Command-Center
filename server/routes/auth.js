@@ -71,6 +71,7 @@ r.post('/login', async (req,res)=>{
     const u=await User.findOne({role,$or:[{email:q},{uniqueId:q.toUpperCase()}]});
     if(!u) return res.status(400).json({msg:"No account found with this Email / Unique ID for this role"});
     if(!u.isVerified) return res.status(400).json({msg:'Please verify OTP first'});
+    if(u.isBlocked) return res.status(403).json({msg:'Account blocked by admin. Contact support.'});
     const ok=await bcrypt.compare(password,u.password);
     if(!ok) return res.status(400).json({msg:'Invalid credentials'});
     const token=jwt.sign({id:u._id,role:u.role},process.env.JWT_SECRET,{expiresIn:'7d'});
