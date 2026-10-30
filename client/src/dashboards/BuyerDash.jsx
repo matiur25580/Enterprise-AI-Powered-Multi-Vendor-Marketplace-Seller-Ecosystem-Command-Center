@@ -17,7 +17,16 @@ export default function BuyerDash({user}){
   const [coupon,setCoupon]=useState(''); const [applied,setApplied]=useState(null);
   const [viewP,setViewP]=useState(null); const [pReviews,setPReviews]=useState([]);
   const [rvP,setRvP]=useState(null); const [rvR,setRvR]=useState(5); const [rvC,setRvC]=useState('');
-  const load=async()=>{ try{ const [p,o,rt]=await Promise.all([api.get('/shop/products'),api.get('/shop/orders'),api.get('/shop/ratings')]); setProducts(p.data); setOrders(o.data); setRatings(rt.data); }catch(e){ setMsg({t:'err',x:'Failed to load data'}); } };
+  const [sbadges,setSbadges]=useState({});
+const [pstats,setPstats]=useState({});
+const [loyal,setLoyal]=useState({tier:'Bronze',rate:1,icon:'\u{1F949}'});
+const [wallet,setWallet]=useState({balance:0,txns:[]});
+useEffect(()=>{ (async()=>{ try{ const x1=await api.get('/shop/seller-badges'); setSbadges(x1.data); }catch(e){}
+  try{ const x2=await api.get('/shop/product-stats'); setPstats(x2.data); }catch(e){}
+  try{ const x3=await api.get('/shop/loyalty'); setLoyal(x3.data); }catch(e){}
+  try{ const x4=await api.get('/shop/wallet'); setWallet(x4.data); }catch(e){}
+  try{ const x5=await api.get('/shop/referral/mine'); setRefData(x5.data); }catch(e){} })(); },[]);
+const load=async()=>{ try{ const [p,o,rt]=await Promise.all([api.get('/shop/products'),api.get('/shop/orders'),api.get('/shop/ratings')]); setProducts(p.data); setOrders(o.data); setRatings(rt.data); }catch(e){ setMsg({t:'err',x:'Failed to load data'}); } };
   useEffect(()=>{load();},[]);
   useEffect(()=>{localStorage.setItem('mp-cart',JSON.stringify(cart));},[cart]);
   useEffect(()=>{localStorage.setItem('mp-wish',JSON.stringify(wish));},[wish]);
@@ -80,7 +89,7 @@ export default function BuyerDash({user}){
     <button className="btn sm ghost" style={{width:'auto'}} onClick={()=>toggleWish(p)}>{wish.includes(p._id)?'❤️':'🤍'}</button></div></div>;};
   return <div className="dash">
     <div className="dash-head"><div><h2>🛒 Buyer Hub</h2><p className="sub">{user.fullName} · <span className="badge shipped">Buyer</span> · <span className="mono">{user.uniqueId}</span></p></div>
-      <div className="head-actions"><span className="badge warn" style={{fontSize:14}} title={"Cashback "+loyal.rate+"%"}>{loyal.icon} {loyal.tier}</span><span className="badge ok" style={{fontSize:14}}>💰 ৳{Math.round(wallet.balance).toLocaleString()}</span><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+      <div className="head-actions"><span className="badge warn" style={{fontSize:14}} title={"Cashback "+loyal.rate+"%"}>{loyal.icon} {loyal.tier}</span><span className="badge ok" style={{fontSize:14}}>💰 ৳{Math.round(wallet.balance).toLocaleString()}</span><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><button className="btn sm ghost" onClick={()=>setRefOpen(true)}>🎁 Refer</button><NotifBell/><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     <ClockStrip/>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>

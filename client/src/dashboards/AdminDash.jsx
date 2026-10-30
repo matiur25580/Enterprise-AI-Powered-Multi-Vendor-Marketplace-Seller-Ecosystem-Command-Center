@@ -12,7 +12,8 @@ export default function AdminDash({user}){
   const [stats,setStats]=useState(null); const [users,setUsers]=useState([]); const [products,setProducts]=useState([]); const [reviews,setReviews]=useState([]); const [coupons,setCoupons]=useState([]); const [anns,setAnns]=useState([]); const [acts,setActs]=useState([]);
   const [af,setAf]=useState({title:'',body:''});
   const [msg,setMsg]=useState(null);
-  const load=async()=>{ try{ const [s,u,p,rv,cp]=await Promise.all([api.get('/shop/admin/stats'),api.get('/shop/admin/users'),api.get('/shop/products'),api.get('/shop/reviews/all/list'),api.get('/shop/coupons/all/list'),api.get('/shop/announcements/all'),api.get('/shop/admin/activity')]); setStats(s.data); setUsers(u.data); setProducts(p.data); setReviews(rv.data); setCoupons(cp.data); setAnns(an[4].data); setActs(an[5].data); }catch(e){ setMsg({t:'err',x:'Failed to load admin data'}); } };
+  useEffect(()=>{ (async()=>{ try{ const x=await api.get('/shop/config'); setCfg(x.data); }catch(e){} })(); },[]);
+const load=async()=>{ try{ const [s,u,p,rv,cp]=await Promise.all([api.get('/shop/admin/stats'),api.get('/shop/admin/users'),api.get('/shop/products'),api.get('/shop/reviews/all/list'),api.get('/shop/coupons/all/list'),api.get('/shop/announcements/all'),api.get('/shop/admin/activity')]); setStats(s.data); setUsers(u.data); setProducts(p.data); setReviews(rv.data); setCoupons(cp.data); setAnns(an[4].data); setActs(an[5].data); }catch(e){ setMsg({t:'err',x:'Failed to load admin data'}); } };
   useEffect(()=>{load();},[]);
   const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
   const er=e=>setMsg({t:'err',x:e.response?.data?.msg||'Failed'});

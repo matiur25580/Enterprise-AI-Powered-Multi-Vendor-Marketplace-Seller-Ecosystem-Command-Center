@@ -17,7 +17,9 @@ export default function SellerDash({user}){
   const [editing,setEditing]=useState(null);
   const [f,setF]=useState({name:'',price:'',stock:'',category:'Electronics',warehouse:'WH-Dhaka'});
   const [cf,setCf]=useState({code:'',percent:'',minOrder:''});
-  const load=async()=>{ try{ const [p,o,c,rv,d]=await Promise.all([api.get('/shop/products/mine'),api.get('/shop/orders'),api.get('/shop/coupons/mine'),api.get('/shop/reviews/mine/seller'),api.get('/shop/deals/mine')]); setProducts(p.data); setOrders(o.data); setCoupons(c.data); setReviews(rv.data); setDeals(d.data);
+  const [rets,setRets]=useState([]);
+useEffect(()=>{ (async()=>{ try{ const x=await api.get('/shop/returns'); setRets(x.data); }catch(e){} })(); },[]);
+const load=async()=>{ try{ const [p,o,c,rv,d]=await Promise.all([api.get('/shop/products/mine'),api.get('/shop/orders'),api.get('/shop/coupons/mine'),api.get('/shop/reviews/mine/seller'),api.get('/shop/deals/mine')]); setProducts(p.data); setOrders(o.data); setCoupons(c.data); setReviews(rv.data); setDeals(d.data);
       try{ const k=await api.get('/shop/kyc'); setKyc(k.data||{}); if(k.data&&k.data.shopName){ setShopN(k.data.shopName); setShopD(k.data.shopDesc||''); } }catch{} }catch(e){ setMsg({t:'err',x:'Failed to load data'}); } };
   useEffect(()=>{load();},[]);
   const ok=x=>{setMsg({t:'ok',x}); setTimeout(()=>setMsg(null),2500);};
@@ -114,7 +116,13 @@ export default function SellerDash({user}){
         <div style={{color:'#f59e0b'}}>{stars(rv.rating)} <span className="muted" style={{color:'inherit',opacity:.6}}>by {rv.buyerName}</span></div>
         <div style={{fontSize:14,marginTop:4}}>{rv.comment}</div></div>)}
       {reviews.length===0&&<p className="empty">No reviews yet.</p>}</div>}
-    {tab==='kyc'&&<div className="panel"><div className="panel-head"><h3>✅ Shop Verification (KYC)</h3>{kyc.kycStatus&&<span className={'badge '+(kyc.kycStatus==='verified'?'ok':kyc.kycStatus==='rejected'?'danger':'warn')}>{kyc.kycStatus}</span>}</div><form onSubmit={subKyc} className="form-grid" style={{maxWidth:500}}><div className="field"><label>Shop Name</label><input required value={shopN} onChange={e=>setShopN(e.target.value)} placeholder="Amar Dokan"/></div><div className="field"><label>Shop Description</label><textarea rows="3" value={shopD} onChange={e=>setShopD(e.target.value)} placeholder="Ki sell koro?"/></div><button className="btn" type="submit">Submit for Verification</button></form><p className="muted" style={{fontSize:13,marginTop:10}}>Verified shop pele buyer ra tomar product e ✓ badge dekhte pabe!</p></div>}
+    {tab==='returns'&&<div className="panel"><h3>↩️ Return Requests</h3>
+{rets.length===0?<p className="muted">No return requests</p>:rets.map(rt=><div key={rt._id} className="list-row">
+<div><b className="mono">{rt.trackingId}</b><div className="muted" style={{fontSize:12}}>{rt.reason} — <span className={'badge '+(rt.status==='pending'?'warn':rt.status==='approved'?'ok':'err')}>{rt.status}</span></div></div>
+{rt.status==='pending'&&<div className="row"><button className="btn sm" onClick={async()=>{try{await api.patch('/shop/returns/'+rt._id,{status:'approved'});ok('Return approved');const x=await api.get('/shop/returns');setRets(x.data);}catch(e){er(e);}}}>Approve</button><button className="btn sm danger" onClick={async()=>{try{await api.patch('/shop/returns/'+rt._id,{status:'rejected'});ok('Return rejected');const x=await api.get('/shop/returns');setRets(x.data);}catch(e){er(e);}}}>Reject</button></div>}
+</div>)}
+</div>}
+{tab==='kyc'&&<div className="panel"><div className="panel-head"><h3>✅ Shop Verification (KYC)</h3>{kyc.kycStatus&&<span className={'badge '+(kyc.kycStatus==='verified'?'ok':kyc.kycStatus==='rejected'?'danger':'warn')}>{kyc.kycStatus}</span>}</div><form onSubmit={subKyc} className="form-grid" style={{maxWidth:500}}><div className="field"><label>Shop Name</label><input required value={shopN} onChange={e=>setShopN(e.target.value)} placeholder="Amar Dokan"/></div><div className="field"><label>Shop Description</label><textarea rows="3" value={shopD} onChange={e=>setShopD(e.target.value)} placeholder="Ki sell koro?"/></div><button className="btn" type="submit">Submit for Verification</button></form><p className="muted" style={{fontSize:13,marginTop:10}}>Verified shop pele buyer ra tomar product e ✓ badge dekhte pabe!</p></div>}
     {tab==='analytics'&&<>
       <div className="panel" style={{borderLeft:'4px solid #8b5cf6'}}><h3>🤖 AI Sales Forecast</h3>
         <p style={{fontSize:15}}>Based on your last 7 days trend, projected revenue for <b>next 7 days</b>:</p>
