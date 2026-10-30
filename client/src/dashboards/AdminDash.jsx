@@ -23,6 +23,7 @@ export default function AdminDash({user}){
   const delCp=async id=>{ if(!confirm('Delete coupon?')) return; try{ await api.delete('/shop/coupons/'+id); ok('Coupon deleted'); load(); }catch(e){er(e);} };
   const addAnn=async e=>{ e.preventDefault(); try{ await api.post('/shop/announcements',af); ok('Announcement published!'); setAf({title:'',body:''}); load(); }catch(e){er(e);} };
   const delAnn=async id=>{ if(!confirm('Delete announcement?')) return; try{ await api.delete('/shop/announcements/'+id); ok('Deleted'); load(); }catch(e){er(e);} };
+  const kycAct=async(id,st)=>{ if(!confirm('KYC '+st+'?')) return; try{ await api.patch('/shop/admin/kyc/'+id,{status:st}); ok('KYC '+st); load(); }catch(e){er(e);} };
   const featP=async id=>{ try{ const r=await api.patch('/shop/products/'+id+'/feature'); ok(r.data.msg); load(); }catch(e){er(e);} };
   const delP=async id=>{ if(!confirm('Delete this product?')) return; try{ await api.delete('/shop/products/'+id); ok('Product deleted successfully!'); load(); }catch(e){er(e);} };
   if(!stats) return <div className="dash"><p className="empty">Loading...</p></div>;

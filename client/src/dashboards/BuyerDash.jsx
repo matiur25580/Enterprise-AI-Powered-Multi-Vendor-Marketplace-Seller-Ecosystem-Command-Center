@@ -68,7 +68,7 @@ export default function BuyerDash({user}){
     if(sold>=10) b.push('🔥 Hot'); if(Date.now()-new Date(p.createdAt).getTime()<7*864e5) b.push('✨ New'); if(dealFor(p._id)) b.push('⚡ Sale');
     return b; };
   const Card=p=>{const rt=ratings[p._id];return <div className="prod-card" key={p._id}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="prod-cat">{p.category}</div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="prod-cat">{p.category} {sbadges[String(p.sellerId)]&&<span title="Verified seller" style={{color:"#16a34a",fontWeight:700}}>✓</span>}</div>
     <div style={{fontSize:11}}>{badges(p).map((b,i)=><span key={i} style={{marginLeft:4}}>{b}</span>)}</div></div>
     <h4 style={{cursor:'pointer'}} onClick={()=>openProduct(p)}>{p.name}</h4>
     {rt&&<div style={{color:'#f59e0b',fontSize:13}}>{stars(Math.round(rt.avg))} <span className="muted" style={{color:'inherit',opacity:.6}}>({rt.avg} · {rt.count})</span></div>}
@@ -78,7 +78,7 @@ export default function BuyerDash({user}){
     <button className="btn sm ghost" style={{width:'auto'}} onClick={()=>toggleWish(p)}>{wish.includes(p._id)?'❤️':'🤍'}</button></div></div>;};
   return <div className="dash">
     <div className="dash-head"><div><h2>🛒 Buyer Hub</h2><p className="sub">{user.fullName} · {user.uniqueId}</p></div>
-      <div className="head-actions"><span className="badge ok" style={{fontSize:14}}>💰 ৳{Math.round(wallet.balance).toLocaleString()}</span><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
+      <div className="head-actions"><span className="badge warn" style={{fontSize:14}} title={"Cashback "+loyal.rate+"%"}>{loyal.icon} {loyal.tier}</span><span className="badge ok" style={{fontSize:14}}>💰 ৳{Math.round(wallet.balance).toLocaleString()}</span><button className="btn sm cart-fab" onClick={()=>setCartOpen(true)}>🧺 Cart{cart.length>0&&<span className="cart-count">{cart.reduce((s,i)=>s+i.qty,0)}</span>}</button><ThemeToggle/><button className="btn sm" style={{background:'#6b7280'}} onClick={logout}>Logout</button></div></div>
     {msg&&<div className={`msg ${msg.t}`}>{msg.x}</div>}
     <AnnounceBar/>
     <div className="stat-grid">{stats.map(x=><div className="stat-card" key={x.l}><div className="stat-v" style={{color:x.c}}>{x.v}</div><div className="stat-l">{x.l}</div></div>)}</div>
