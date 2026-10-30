@@ -67,8 +67,9 @@ r.post('/resend-verification', async (req,res)=>{
 r.post('/login', async (req,res)=>{
   try{
     const {email,password,role}=req.body;
-    const u=await User.findOne({email,role});
-    if(!u) return res.status(400).json({msg:"This email doesn't exist for this role, plz register first"});
+    const q=(email||"").trim();
+    const u=await User.findOne({role,$or:[{email:q},{uniqueId:q.toUpperCase()}]});
+    if(!u) return res.status(400).json({msg:"No account found with this Email / Unique ID for this role"});
     if(!u.isVerified) return res.status(400).json({msg:'Please verify OTP first'});
     const ok=await bcrypt.compare(password,u.password);
     if(!ok) return res.status(400).json({msg:'Invalid credentials'});
