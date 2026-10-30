@@ -44,9 +44,11 @@ r.post('/verify-register', async (req,res)=>{
     const q={email,otp,purpose:'register'}; if(role) q.role=role;
     const rec=await Otp.findOne(q);
     if(!rec) return res.status(400).json({msg:'Invalid or expired OTP'});
-    await User.updateOne({email,role:rec.role},{isVerified:true});
+    const u=await User.findOne({email,role:rec.role});
+    if(!u) return res.status(400).json({msg:'User not found'});
+    u.isVerified=true; await u.save();
     await Otp.deleteMany({email,purpose:'register',role:rec.role});
-    res.json({msg:'Account verified successfully!'});
+    res.json({msg:'Account verified successfully!',uniqueId:u.uniqueId,email:u.email,role:u.role,fullName:u.fullName});
   }catch(e){ res.status(400).json({msg:e.message}); }
 });
 

@@ -8,7 +8,8 @@ export default function VerifyOtp(){ const nav=useNavigate(); const loc=useLocat
   useEffect(()=>{ if(sec<=0) return; const t=setTimeout(()=>setSec(s=>s-1),1000); return ()=>clearTimeout(t); },[sec]);
   const ch=(i,v)=>{ if(!/^\d?$/.test(v)) return; const b=[...boxes]; b[i]=v; setBoxes(b); if(v&&i<5) refs.current[i+1]?.focus(); };
   const verify=async()=>{ const otp=boxes.join(''); if(otp.length<6) return setMsg({t:'err',x:'Enter 6-digit OTP'});
-    try{ const {data}=await axios.post(`${API}/auth/verify-register`,{email,otp,role}); setMsg({t:'ok',x:data.msg+' Redirecting to login...'}); setTimeout(()=>nav('/login'),1200);
+    try{ const {data}=await axios.post(`${API}/auth/verify-register`,{email,otp,role});
+      nav('/registration-success',{state:{uniqueId:data.uniqueId,email:data.email||email,role:data.role||role,fullName:data.fullName}});
     }catch(e){ setMsg({t:'err',x:e.response?.data?.msg||'Verification failed'}); } };
   const resend=async()=>{ try{ await axios.post(`${API}/auth/resend-verification`,{email,role}); setSec(300); setMsg({t:'ok',x:'New OTP sent!'}); }catch(e){ setMsg({t:'err',x:e.response?.data?.msg||'Resend failed'}); } };
   const mm=String(Math.floor(sec/60)).padStart(2,'0'), ss=String(sec%60).padStart(2,'0');
