@@ -10,7 +10,7 @@
 
 | Service | URL |
 |---|---|
-| 🌐 **Frontend** (Vercel) | `https://marketplace-ecosystem.vercel.app` <!-- ⚠️ Vercel dashboard theke asol URL niye replace korun -->
+| 🌐 **Frontend** (Vercel) | `https://marketplace-ecosystem.vercel.app`
 | ⚙️ **Backend API** (Render) | `https://enterprise-ai-powered-multi-vendor.onrender.com` |
 | 📦 **GitHub** | `https://github.com/matiur25580/Enterprise-AI-Powered-Multi-Vendor-Marketplace-Seller-Ecosystem-Command-Center` |
 
@@ -228,7 +228,7 @@ Changes apply **instantly** — no redeploy needed.
 
 ## 👨‍💻 Author
 
-**Rubel Ali** — MERN Full-Stack Developer
+**Matiur Rahaman** — Full-Stack Developer
 - GitHub: [@matiur25580](https://github.com/matiur25580)
 - 📧 rahamanmatiur397@gmail.com
 
