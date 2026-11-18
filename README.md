@@ -130,7 +130,7 @@ npm run dev
 
 ## Engineering status and production gaps
 
-The backend package currently defines a placeholder test script that exits with an error. The active Express entry point also uses permissive CORS configuration. Before production use:
+The active Express entry point now uses a comma-separated `CLIENT_URL` allowlist for CORS, rejects unconfigured browser origins, applies baseline security response headers, limits JSON request bodies to 1 MB, returns consistent 404/error responses, and fails fast when `MONGO_URI` is missing or the database connection fails. The backend package no longer advertises a placeholder test command; automated tests still need to be implemented. Before production use:
 
 - Restrict CORS to explicit frontend origins and add appropriate security headers.
 - Verify server-side authorization and seller/buyer ownership for every sensitive operation.
