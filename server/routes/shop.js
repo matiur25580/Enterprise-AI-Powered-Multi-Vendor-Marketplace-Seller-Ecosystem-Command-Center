@@ -29,8 +29,16 @@ r.post('/orders',protect,async(req,res)=>{ const {items,sellerId,warehouse,coupo
   const o=await Order.create({buyerId:req.user.id,sellerId,items,subtotal,discount,couponCode:appliedCode,total,commission,fraudFlag,trackingId,warehouse:warehouse||'WH-Dhaka',refundStatus:'none'});
   res.json({msg:'Order placed successfully!'+(appliedCode?' Coupon '+appliedCode+' applied!':''),o}); });
 r.get('/orders',protect,async(req,res)=>{ const q=req.user.role==='buyer'?{buyerId:req.user.id}:req.user.role==='seller'?{sellerId:req.user.id}:{}; res.json(await Order.find(q).sort({createdAt:-1}).limit(100)); });
-r.patch('/orders/:id',protect,allow('logistics','admin','seller'),async(req,res)=>{ const u={status:req.body.status}; if(req.body.deliveryNote) u.deliveryNote=req.body.deliveryNote;
-  await Order.findByIdAndUpdate(req.params.id,u); res.json({msg:'Order status updated to '+req.body.status}); });
+r.patch('/orders/:id',protect,allow('logistics','admin','seller'),async(req,res)=>{ 
+  const o=await Order.findById(req.params.id);
+  if(!o) return res.status(404).json({msg:'Order not found'});
+  if(req.user.role==='seller'&&String(o.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your order'});
+  const allowedStatuses=['placed','processing','shipped','delivered','cancelled'];
+  if(!allowedStatuses.includes(req.body.status)) return res.status(400).json({msg:'Invalid order status'});
+  const u={status:req.body.status};
+  if(typeof req.body.deliveryNote==='string') u.deliveryNote=req.body.deliveryNote.slice(0,500);
+  Object.assign(o,u); await o.save();
+  res.json({msg:'Order status updated to '+o.status,o}); });
 r.patch('/orders/:id/cancel',protect,async(req,res)=>{ const o=await Order.findById(req.params.id);
   if(!o||String(o.buyerId)!==req.user.id) return res.status(403).json({msg:'Not allowed'});
   if(o.status!=='placed') return res.status(400).json({msg:'Cannot cancel at this stage'});
@@ -84,7 +92,7 @@ r.get('/admin/users',protect,allow('admin'),async(req,res)=>res.json(await User.
 r.patch('/admin/users/:id',protect,allow('admin'),async(req,res)=>{ const u=await User.findById(req.params.id); if(!u) return res.status(404).json({msg:'Not found'});
   u.isBlocked=!u.isBlocked; await u.save(); res.json({msg:u.isBlocked?'User blocked':'User unblocked'}); });
 // seed
-r.get('/seed',async(req,res)=>{ if(await Product.countDocuments()>0) return res.json({msg:'already seeded'});
+r.get('/seed',protect,allow('admin'),async(req,res)=>{ if(await Product.countDocuments()>0) return res.json({msg:'already seeded'});
   const demo=[['Wireless Headphone',2500,'Electronics'],['Cotton Panjabi',1800,'Fashion'],['Smart Watch',4200,'Electronics'],['Leather Wallet',950,'Fashion'],['Rice Cooker',3100,'Home'],['Running Shoes',2800,'Fashion']];
   await Product.insertMany(demo.map(d=>({name:d[0],price:d[1],category:d[2],stock:50}))); res.json({msg:'Seeded 6 products!'}); });
 // ===== auto-repair routes =====
@@ -143,6 +151,9 @@ r.post('/returns',protect,async(req,res)=>{ const o=await Order.findById(req.bod
 r.get('/returns',protect,async(req,res)=>{ const q=req.user.role==='buyer'?{buyerId:req.user.id}:req.user.role==='seller'?{sellerId:req.user.id}:{};
   res.json(await Return.find(q).sort({createdAt:-1}).limit(100)); });
 r.patch('/returns/:id',protect,allow('seller','admin'),async(req,res)=>{ const rt=await Return.findById(req.params.id); if(!rt) return res.status(404).json({msg:'Not found'});
+  if(req.user.role==='seller'&&String(rt.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your return'});
+  const allowedStatuses=['pending','approved','rejected','completed'];
+  if(!allowedStatuses.includes(req.body.status)) return res.status(400).json({msg:'Invalid return status'});
   rt.status=req.body.status; await rt.save();
   if(req.body.status==='approved'){ await Order.findByIdAndUpdate(rt.orderId,{refundStatus:'pending'}); notify(rt.buyerId,'\u21A9\uFE0F Return approved','Refund for '+rt.trackingId+' will be processed'); }
   else notify(rt.buyerId,'\u21A9\uFE0F Return update','Return for '+rt.trackingId+': '+req.body.status);
