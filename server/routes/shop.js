@@ -42,7 +42,6 @@ r.post('/orders',protect,allow('buyer'),async(req,res)=>{
       }
     }
     const total=+(cart.subtotal-discount).toFixed(2);
-    const reservedItems=[];
     for(const item of cart.items){
       const updated=await Product.findOneAndUpdate(
         {_id:item.productId,stock:{$gte:item.qty}},
@@ -50,9 +49,8 @@ r.post('/orders',protect,allow('buyer'),async(req,res)=>{
         {new:true}
       );
       if(!updated) throw new Error('Insufficient stock for '+item.name+'.');
-      reservedItems.push(item);
+      reserved.push(item);
     }
-    reserved=reservedItems;
     const fraudFlag=cart.items.reduce((sum,item)=>sum+item.qty,0)>=10;
     const commission=+(total*0.1).toFixed(2);
     const trackingId='TRK'+Date.now().toString(36).toUpperCase();
