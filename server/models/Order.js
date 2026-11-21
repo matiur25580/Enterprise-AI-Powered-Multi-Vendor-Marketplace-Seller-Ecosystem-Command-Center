@@ -9,5 +9,8 @@ module.exports=mongoose.model('Order',new mongoose.Schema({
   trackingId:String, warehouse:{type:String,default:'WH-Dhaka'},
   subtotal:{type:Number,default:0}, discount:{type:Number,default:0}, couponCode:String,
   walletUsed:{type:Number,default:0},
+  refundSettlementReference:{type:String,default:null,maxlength:120},
+  refundSettledBy:{type:mongoose.Schema.Types.ObjectId,ref:'User',default:null},
+  refundSettledAt:{type:Date,default:null},
   deliveryNote:String, refundStatus:{type:String,enum:['none','pending','done'],default:'none'}
 },{timestamps:true}));
