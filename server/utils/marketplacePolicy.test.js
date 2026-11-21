@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {publicRegistrationAllowed,normalizeOrderItems}=require('./marketplacePolicy');
+const {publicRegistrationAllowed,normalizeOrderItems,calculatePayoutAmount}=require('./marketplacePolicy');
 
 test('public signup defaults to buyer and rejects privileged roles',()=>{
   assert.equal(publicRegistrationAllowed(undefined),true);
@@ -39,4 +39,17 @@ test('checkout combines duplicate lines before stock validation',()=>{
   const cart=normalizeOrderItems([{productId:'p1',qty:1},{productId:'p1',qty:2}],products);
   assert.equal(cart.items.length,1);
   assert.equal(cart.items[0].qty,3);
+});
+
+test('payout amount is derived from delivered-order net totals, not client input',()=>{
+  assert.equal(calculatePayoutAmount([
+    {total:1000,commission:100},
+    {total:500,commission:50}
+  ]),1350);
+});
+
+test('payout calculation rejects invalid amounts and never returns a negative net',()=>{
+  assert.equal(calculatePayoutAmount([{total:10,commission:20}]),0);
+  assert.throws(()=>calculatePayoutAmount([{total:NaN,commission:1}]),/valid non-negative/);
+  assert.throws(()=>calculatePayoutAmount([{total:100,commission:-1}]),/valid non-negative/);
 });
