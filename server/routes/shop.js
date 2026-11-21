@@ -1,4 +1,6 @@
 const r=require('express').Router();
+const mongoose=require('mongoose');
+const { normalizeOrderItems }=require('../utils/marketplacePolicy');
 const Product=require('../models/Product'), Order=require('../models/Order'),
       User=require('../models/User'), Payout=require('../models/Payout'),
       Review=require('../models/Review'), Coupon=require('../models/Coupon'), Notification=require('../models/Notification'), Deal=require('../models/Deal'), Announcement=require('../models/Announcement'), Wallet=require('../models/Wallet'), Return=require('../models/Return'), KYC=require('../models/KYC'), Config=require('../models/Config'), Referral=require('../models/Referral'), Wishlist=require('../models/Wishlist');
@@ -17,18 +19,60 @@ r.delete('/products/:id',protect,allow('seller','admin'),async(req,res)=>{ const
   if(req.user.role==='seller'&&String(p.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your product'});
   await p.deleteOne(); res.json({msg:'Product deleted successfully!'}); });
 // orders
-r.post('/orders',protect,async(req,res)=>{ const {items,sellerId,warehouse,couponCode}=req.body;
-  const subtotal=items.reduce((s,i)=>s+i.price*i.qty,0);
-  let discount=0,appliedCode=null;
-  if(couponCode){ const cp=await Coupon.findOne({code:String(couponCode).toUpperCase(),active:true});
-    if(cp&&subtotal>=cp.minOrder&&(!cp.sellerId||String(cp.sellerId)===String(sellerId))){ discount=+((subtotal*cp.percent)/100).toFixed(2); appliedCode=cp.code; } }
-  const total=+(subtotal-discount).toFixed(2);
-  const fraudFlag=items.reduce((s,i)=>s+i.qty,0)>=10; const commission=+(total*0.1).toFixed(2);
-  const trackingId='TRK'+Date.now().toString(36).toUpperCase();
-  for(const it of items){ await Product.findOneAndUpdate({name:it.name},{$inc:{stock:-it.qty}}); }
-  const o=await Order.create({buyerId:req.user.id,sellerId,items,subtotal,discount,couponCode:appliedCode,total,commission,fraudFlag,trackingId,warehouse:warehouse||'WH-Dhaka',refundStatus:'none'});
-  res.json({msg:'Order placed successfully!'+(appliedCode?' Coupon '+appliedCode+' applied!':''),o}); });
-r.get('/orders',protect,async(req,res)=>{ const q=req.user.role==='buyer'?{buyerId:req.user.id}:req.user.role==='seller'?{sellerId:req.user.id}:{}; res.json(await Order.find(q).sort({createdAt:-1}).limit(100)); });
+r.post('/orders',protect,allow('buyer'),async(req,res)=>{
+  const requestedItems=req.body.items;
+  const ids=(Array.isArray(requestedItems)?requestedItems:[]).map(i=>i&&i.productId).filter(id=>mongoose.isValidObjectId(id));
+  const names=(Array.isArray(requestedItems)?requestedItems:[]).map(i=>i&&i.name).filter(name=>typeof name==='string');
+  let reserved=[];
+  try{
+    if(!Array.isArray(requestedItems)||requestedItems.length===0) return res.status(400).json({msg:'Cart is empty.'});
+    const clauses=[];
+    if(ids.length) clauses.push({_id:{$in:ids}});
+    if(names.length) clauses.push({name:{$in:names}});
+    const products=await Product.find(clauses.length?{$or:clauses}:{_id:null});
+    const cart=normalizeOrderItems(requestedItems,products);
+    let discount=0,appliedCode=null;
+    if(req.body.couponCode){
+      const cp=await Coupon.findOne({code:String(req.body.couponCode).trim().toUpperCase(),active:true});
+      if(cp&&cart.subtotal>=Number(cp.minOrder||0)
+        &&(!cp.sellerId||String(cp.sellerId)===String(cart.sellerId))
+        &&Number(cp.percent)>0&&Number(cp.percent)<=100){
+        discount=+((cart.subtotal*Number(cp.percent))/100).toFixed(2);
+        appliedCode=cp.code;
+      }
+    }
+    const total=+(cart.subtotal-discount).toFixed(2);
+    const reservedItems=[];
+    for(const item of cart.items){
+      const updated=await Product.findOneAndUpdate(
+        {_id:item.productId,stock:{$gte:item.qty}},
+        {$inc:{stock:-item.qty}},
+        {new:true}
+      );
+      if(!updated) throw new Error('Insufficient stock for '+item.name+'.');
+      reservedItems.push(item);
+    }
+    reserved=reservedItems;
+    const fraudFlag=cart.items.reduce((sum,item)=>sum+item.qty,0)>=10;
+    const commission=+(total*0.1).toFixed(2);
+    const trackingId='TRK'+Date.now().toString(36).toUpperCase();
+    const order=await Order.create({
+      buyerId:req.user.id,
+      sellerId:cart.sellerId,
+      items:cart.items.map(({name,price,qty})=>({name,price,qty})),
+      subtotal:cart.subtotal,discount,couponCode:appliedCode,total,commission,
+      fraudFlag,trackingId,warehouse:cart.warehouse,refundStatus:'none'
+    });
+    res.status(201).json({msg:'Order placed successfully!'+(appliedCode?' Coupon '+appliedCode+' applied!':''),o:order});
+  }catch(error){
+    if(res.headersSent) return;
+    if(reserved.length){
+      await Promise.all(reserved.map(item=>Product.updateOne({_id:item.productId},{$inc:{stock:item.qty}}).catch(()=>null)));
+    }
+    res.status(400).json({msg:error.message||'Unable to place order.'});
+  }
+});
+r.get('/orders',protect,async(req,res)=>{ const q=req.user.role==='buyer'?{buyerId:req.user.id}:req.user.role==='seller'?{sellerId:req.user.id}:['admin','logistics','finance'].includes(req.user.role)?{}:null; if(!q) return res.status(403).json({msg:'Access denied'}); res.json(await Order.find(q).sort({createdAt:-1}).limit(100)); });
 r.patch('/orders/:id',protect,allow('logistics','admin','seller'),async(req,res)=>{ 
   const o=await Order.findById(req.params.id);
   if(!o) return res.status(404).json({msg:'Order not found'});
