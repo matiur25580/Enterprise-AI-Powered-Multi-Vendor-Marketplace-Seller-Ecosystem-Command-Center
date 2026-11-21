@@ -14,7 +14,11 @@ r.get('/products/mine',protect,allow('seller','admin'),async(req,res)=>{ const q
 r.post('/products',protect,allow('seller','admin'),async(req,res)=>{ const p=await Product.create({...req.body,sellerId:req.user.id}); res.json({msg:'Product added successfully!',p}); });
 r.put('/products/:id',protect,allow('seller','admin'),async(req,res)=>{ const p=await Product.findById(req.params.id); if(!p) return res.status(404).json({msg:'Not found'});
   if(req.user.role==='seller'&&String(p.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your product'});
-  Object.assign(p,req.body); await p.save(); res.json({msg:'Product updated successfully!',p}); });
+  const updates={...req.body};
+  delete updates.sellerId;
+  delete updates._id;
+  delete updates.__v;
+  Object.assign(p,updates); await p.save(); res.json({msg:'Product updated successfully!',p}); });
 r.delete('/products/:id',protect,allow('seller','admin'),async(req,res)=>{ const p=await Product.findById(req.params.id); if(!p) return res.status(404).json({msg:'Not found'});
   if(req.user.role==='seller'&&String(p.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your product'});
   await p.deleteOne(); res.json({msg:'Product deleted successfully!'}); });
@@ -143,7 +147,7 @@ r.patch('/notifications/read-all',protect,async(req,res)=>{ await Notification.u
 r.post('/deals',protect,allow('seller','admin'),async(req,res)=>{ const p=await Product.findById(req.body.productId); if(!p) return res.status(404).json({msg:'Product not found'});
   if(req.user.role==='seller'&&String(p.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your product'});
   const percent=+req.body.percent||0; const dealPrice=+(p.price*(1-percent/100)).toFixed(2);
-  const d=await Deal.create({productId:p._id,productName:p.name,sellerId:req.user.role==='seller'?req.user.id:(req.body.sellerId||req.user.id),percent,dealPrice,endsAt:req.body.endsAt});
+  const d=await Deal.create({productId:p._id,productName:p.name,sellerId:p.sellerId||req.user.id,percent,dealPrice,endsAt:req.body.endsAt});
   try{ const _w=await Wishlist.find({productId:p._id}).select('userId');
     for(const _x of _w){ if(String(_x.userId)!==String(req.user.id)) notify(_x.userId,'\u26a1 Price drop!','"'+p.name+' in your wishlist is now '+percent+'% OFF!'); } }catch(_e){}
   res.json({msg:'Flash deal created!',d}); });
