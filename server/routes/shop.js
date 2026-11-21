@@ -1,6 +1,6 @@
 const r=require('express').Router();
 const mongoose=require('mongoose');
-const { normalizeOrderItems }=require('../utils/marketplacePolicy');
+const { normalizeOrderItems, calculatePayoutAmount }=require('../utils/marketplacePolicy');
 const Product=require('../models/Product'), Order=require('../models/Order'),
       User=require('../models/User'), Payout=require('../models/Payout'),
       Review=require('../models/Review'), Coupon=require('../models/Coupon'), Notification=require('../models/Notification'), Deal=require('../models/Deal'), Announcement=require('../models/Announcement'), Wallet=require('../models/Wallet'), Return=require('../models/Return'), KYC=require('../models/KYC'), Config=require('../models/Config'), Referral=require('../models/Referral'), Wishlist=require('../models/Wishlist');
@@ -93,12 +93,33 @@ r.patch('/orders/:id/cancel',protect,async(req,res)=>{ const o=await Order.findB
 r.get('/logistics/shipments',protect,allow('logistics','admin'),async(req,res)=>res.json(await Order.find({status:{$in:['placed','shipped']}}).populate('buyerId','fullName').sort({createdAt:-1}).limit(100)));
 // finance
 r.get('/finance',protect,allow('finance','admin'),async(req,res)=>{ const os=await Order.find({status:{$ne:'cancelled'}}); res.json({gmv:os.reduce((s,o)=>s+o.total,0),commission:os.reduce((s,o)=>s+(o.commission||0),0),orders:os.length,fraud:os.filter(o=>o.fraudFlag).length,discount:os.reduce((s,o)=>s+(o.discount||0),0)}); });
-r.get('/finance/payouts',protect,allow('finance','admin'),async(req,res)=>{ const orders=await Order.find({status:{$ne:'cancelled'}}).populate('sellerId','fullName email'); const map={};
+r.get('/finance/payouts',protect,allow('finance','admin'),async(req,res)=>{ const orders=await Order.find({status:'delivered'}).populate('sellerId','fullName email'); const map={};
   orders.forEach(o=>{ const sid=String(o.sellerId?._id||o.sellerId); if(!map[sid]) map[sid]={sellerId:sid,name:o.sellerId?.fullName||'Unknown',email:o.sellerId?.email||'',gross:0,commission:0,orders:0};
     map[sid].gross+=o.total; map[sid].commission+=o.commission||0; map[sid].orders++; });
-  const paid=await Payout.find(); const pm={}; paid.forEach(p=>pm[String(p.sellerId)]=(pm[String(p.sellerId)]||0)+p.amount);
-  res.json(Object.values(map).map(m=>({...m,net:+(m.gross-m.commission).toFixed(2),paid:pm[m.sellerId]||0,pending:+((m.gross-m.commission)-(pm[m.sellerId]||0)).toFixed(2)}))); });
-r.post('/finance/payouts/pay',protect,allow('finance','admin'),async(req,res)=>{ const p=await Payout.create({sellerId:req.body.sellerId,amount:req.body.amount,period:new Date().toISOString().slice(0,7)}); res.json({msg:'Payout recorded successfully!',p}); });
+  const paid=await Payout.find({status:'paid'}); const pendingPayouts=await Payout.find({status:'pending'}); const pm={}; paid.forEach(p=>pm[String(p.sellerId)]=(pm[String(p.sellerId)]||0)+p.amount); const pendingMap={}; pendingPayouts.forEach(p=>pendingMap[String(p.sellerId)]=(pendingMap[String(p.sellerId)]||0)+p.amount);
+  res.json(Object.values(map).map(m=>({...m,net:+(m.gross-m.commission).toFixed(2),paid:pm[m.sellerId]||0,pendingPayout:pendingMap[m.sellerId]||0,pending:+((m.gross-m.commission)-(pm[m.sellerId]||0)-(pendingMap[m.sellerId]||0)).toFixed(2)}))); });
+r.post('/finance/payouts/pay',protect,allow('finance','admin'),async(req,res)=>{
+  const sellerId=String(req.body.sellerId||'');
+  if(!mongoose.isValidObjectId(sellerId)) return res.status(400).json({msg:'A valid sellerId is required.'});
+  const seller=await User.findOne({_id:sellerId,role:'seller'}).select('_id');
+  if(!seller) return res.status(404).json({msg:'Seller not found.'});
+  const now=new Date(), period=now.toISOString().slice(0,7);
+  const start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1));
+  const end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1));
+  const periodKey=sellerId+':'+period;
+  const existing=await Payout.findOne({periodKey});
+  if(existing) return res.status(409).json({msg:'A payout has already been recorded for this seller and period.'});
+  const orders=await Order.find({sellerId,status:'delivered',createdAt:{$gte:start,$lt:end}}).select('total commission');
+  const amount=calculatePayoutAmount(orders);
+  if(amount<=0) return res.status(400).json({msg:'No payable delivered-order balance exists for this period.'});
+  try{
+    const p=await Payout.create({sellerId,amount,period,periodKey,status:'pending'});
+    return res.status(201).json({msg:'Payout queued for manual settlement. It has not been marked as paid.',p});
+  }catch(error){
+    if(error&&error.code===11000) return res.status(409).json({msg:'A payout has already been recorded for this seller and period.'});
+    throw error;
+  }
+});
 r.get('/finance/refunds',protect,allow('finance','admin'),async(req,res)=>res.json(await Order.find({status:'cancelled'}).populate('buyerId','fullName email').sort({createdAt:-1}).limit(100)));
 r.patch('/finance/refunds/:id',protect,allow('finance','admin'),async(req,res)=>{ await Order.findByIdAndUpdate(req.params.id,{refundStatus:'done'}); res.json({msg:'Refund marked as done'}); });
 // reviews

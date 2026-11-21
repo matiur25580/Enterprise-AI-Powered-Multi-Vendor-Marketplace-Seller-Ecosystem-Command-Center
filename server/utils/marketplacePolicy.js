@@ -47,4 +47,16 @@ function normalizeOrderItems(requestedItems, products) {
   return { items, subtotal: +subtotal.toFixed(2), sellerId: normalized[0].product.sellerId || null, warehouse: normalized[0].product.warehouse || 'WH-Dhaka' };
 }
 
-module.exports = { publicRegistrationAllowed, normalizeOrderItems };
+function calculatePayoutAmount(orders) {
+  const net = orders.reduce((sum, order) => {
+    const total = Number(order.total);
+    const commission = Number(order.commission || 0);
+    if (!Number.isFinite(total) || !Number.isFinite(commission) || total < 0 || commission < 0) {
+      throw new Error('Order payout values must be valid non-negative amounts.');
+    }
+    return sum + Math.max(0, total - commission);
+  }, 0);
+  return +net.toFixed(2);
+}
+
+module.exports = { publicRegistrationAllowed, normalizeOrderItems, calculatePayoutAmount };
