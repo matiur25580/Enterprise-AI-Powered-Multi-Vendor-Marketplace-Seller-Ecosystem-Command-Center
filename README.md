@@ -144,3 +144,80 @@ Do not enter real payment credentials or customer personal data into the demo.
 ## Maintainer
 
 **Matiur Rahaman** · [GitHub](https://github.com/matiur25580)
+
+
+## Dashboard Gallery
+
+Explore 12 illustrative marketplace workspaces for command-center health, buyer experience, seller performance, catalogue, orders, inventory, shipping, payments, payouts, returns, customer support and marketplace analytics. All metrics are sample values for UI illustration, not live transactions, settlement balances or seller records.
+
+### 01. Marketplace Command Center
+
+Marketplace activity, order health, seller performance and fulfilment status.
+
+![Marketplace Command Center dashboard preview](docs/readme-dashboard-gallery/dashboard-01.svg)
+
+### 02. Buyer Experience
+
+Buyer accounts, discovery activity, cart conversion and order journey.
+
+![Buyer Experience dashboard preview](docs/readme-dashboard-gallery/dashboard-02.svg)
+
+### 03. Seller Performance
+
+Seller onboarding, catalogue health, order fulfilment and seller ratings.
+
+![Seller Performance dashboard preview](docs/readme-dashboard-gallery/dashboard-03.svg)
+
+### 04. Product Catalogue
+
+Product approvals, inventory availability, category mix and listing quality.
+
+![Product Catalogue dashboard preview](docs/readme-dashboard-gallery/dashboard-04.svg)
+
+### 05. Order Management
+
+Order states, payment status, fulfilment progress and exception handling.
+
+![Order Management dashboard preview](docs/readme-dashboard-gallery/dashboard-05.svg)
+
+### 06. Inventory & Stock
+
+Stock levels, reservations, replenishment signals and inventory movement.
+
+![Inventory & Stock dashboard preview](docs/readme-dashboard-gallery/dashboard-06.svg)
+
+### 07. Shipping & Logistics
+
+Dispatch queue, carrier handoff, delivery milestones and tracking exceptions.
+
+![Shipping & Logistics dashboard preview](docs/readme-dashboard-gallery/dashboard-07.svg)
+
+### 08. Payments & Reconciliation
+
+Payment intents, settlement status, refunds and reconciliation exceptions.
+
+![Payments & Reconciliation dashboard preview](docs/readme-dashboard-gallery/dashboard-08.svg)
+
+### 09. Seller Payouts
+
+Seller earnings, payout eligibility, pending settlements and payout history.
+
+![Seller Payouts dashboard preview](docs/readme-dashboard-gallery/dashboard-09.svg)
+
+### 10. Returns & Refunds
+
+Return requests, inspection status, refund references and resolution time.
+
+![Returns & Refunds dashboard preview](docs/readme-dashboard-gallery/dashboard-10.svg)
+
+### 11. Customer Support
+
+Support queue, order-related issues, response times and customer satisfaction.
+
+![Customer Support dashboard preview](docs/readme-dashboard-gallery/dashboard-11.svg)
+
+### 12. Marketplace Analytics
+
+Revenue trends, category performance, seller growth and conversion analytics.
+
+![Marketplace Analytics dashboard preview](docs/readme-dashboard-gallery/dashboard-12.svg)
