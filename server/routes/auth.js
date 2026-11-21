@@ -1,5 +1,7 @@
 const express=require('express');
 const bcrypt=require('bcryptjs');
+const crypto=require('crypto');
+const { publicRegistrationAllowed } = require('../utils/marketplacePolicy');
 const jwt=require('jsonwebtoken');
 const User=require('../models/User');
 const Otp=require('../models/Otp');
@@ -17,7 +19,7 @@ function makeUid(role,fullName,dob){
 }
 
 const newOtp=async(email,purpose,role)=>{
-  const otp=Math.floor(100000+Math.random()*900000).toString();
+  const otp=crypto.randomInt(100000,1000000).toString();
   await Otp.deleteMany({email,purpose,role});
   await Otp.create({email,otp,purpose,role});
   sendEmail(email,purpose==='register'?'Verify your Marketplace account':'Password Reset OTP',otpHtml(otp)).catch(e=>console.log('mail err',e.message));
@@ -26,7 +28,9 @@ const newOtp=async(email,purpose,role)=>{
 
 r.post('/register', async (req,res)=>{
   try{
-    const {fullName,email,contact,dob,role,password}=req.body;
+    const {fullName,email,contact,dob,password}=req.body;
+    const role='buyer';
+    if(!publicRegistrationAllowed(req.body.role)) return res.status(403).json({msg:'Public registration is limited to Buyer accounts. Seller and staff accounts must be provisioned by an administrator.'});
     if(!/^[0-9]{8}$/.test(dob||'')) return res.status(400).json({msg:'DOB must be 8 digits (DDMMYYYY)'});
     const ex=await User.findOne({email,role});
     if(ex&&ex.isVerified) return res.status(400).json({msg:'This email already registered for this role'});

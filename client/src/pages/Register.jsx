@@ -1,6 +1,6 @@
 import { useState } from 'react'; import { useNavigate, Link } from 'react-router-dom'; import axios from 'axios'; import ThemeToggle from '../components/ThemeToggle';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const ROLES=[['buyer','Buyer'],['seller','Seller'],['logistics','Logistics Partner'],['finance','Finance'],['admin','Super Admin']];
+const ROLES=[['buyer','Buyer']];
 export default function Register(){ const nav=useNavigate();
   const [f,setF]=useState({fullName:'',email:'',contact:'',dob:'',role:'buyer',password:'',confirm:''}); const [msg,setMsg]=useState(null); const [loading,setLoading]=useState(false);
   const submit=async e=>{ e.preventDefault(); setMsg(null);
@@ -21,7 +21,7 @@ export default function Register(){ const nav=useNavigate();
       <div className="field"><label>Email</label><input type="email" required value={f.email} onChange={e=>s({email:e.target.value})} placeholder="you@mail.com"/></div>
       <div className="field"><label>Contact Number</label><input required value={f.contact} onChange={e=>s({contact:e.target.value})} placeholder="01XXXXXXXXX"/></div>
       <div className="field"><label>Date of Birth (DDMMYYYY)</label><input required value={f.dob} onChange={e=>s({dob:e.target.value})} placeholder="29081998" maxLength={8} inputMode="numeric"/></div>
-      <div className="field"><label>Account Role</label><select value={f.role} onChange={e=>s({role:e.target.value})}>{ROLES.map(r=><option key={r[0]} value={r[0]}>{r[1]}</option>)}</select></div>
+      <div className="field"><label>Account Role</label><select value="buyer" disabled aria-label="Account Role">{ROLES.map(r=><option key={r[0]} value={r[0]}>{r[1]}</option>)}</select><small>Seller and staff accounts are provisioned by an administrator.</small></div>
       <div className="field"><label>Password</label><input type="password" required value={f.password} onChange={e=>s({password:e.target.value})} placeholder="••••••••"/></div>
       <div className="field"><label>Confirm Password</label><input type="password" required value={f.confirm} onChange={e=>s({confirm:e.target.value})} placeholder="••••••••"/></div>
       <button className="btn" type="submit" disabled={loading} style={loading?{opacity:.6}:null}>{loading?'Please wait...':'SUBMIT'}</button>
