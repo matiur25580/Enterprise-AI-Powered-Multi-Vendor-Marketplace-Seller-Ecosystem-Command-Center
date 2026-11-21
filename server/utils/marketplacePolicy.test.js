@@ -53,3 +53,16 @@ test('payout calculation rejects invalid amounts and never returns a negative ne
   assert.throws(()=>calculatePayoutAmount([{total:NaN,commission:1}]),/valid non-negative/);
   assert.throws(()=>calculatePayoutAmount([{total:100,commission:-1}]),/valid non-negative/);
 });
+
+const { buildRefundSettlement }=require('./refundPolicy');
+
+test('refund settlement requires a manual transfer reference and records actor/time',()=>{
+  const now=new Date('2026-11-22T00:00:00.000Z');
+  assert.throws(()=>buildRefundSettlement('', 'finance-1', now),/settlement reference/);
+  assert.throws(()=>buildRefundSettlement('x'.repeat(121), 'finance-1', now),/settlement reference/);
+  assert.deepEqual(buildRefundSettlement(' BANK-TRANSFER-123 ', 'finance-1', now),{
+    refundSettlementReference:'BANK-TRANSFER-123',
+    refundSettledBy:'finance-1',
+    refundSettledAt:now
+  });
+});
