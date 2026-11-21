@@ -1,6 +1,7 @@
 const r=require('express').Router();
 const mongoose=require('mongoose');
 const { normalizeOrderItems, calculatePayoutAmount }=require('../utils/marketplacePolicy');
+const { buildRefundSettlement }=require('../utils/refundPolicy');
 const Product=require('../models/Product'), Order=require('../models/Order'),
       User=require('../models/User'), Payout=require('../models/Payout'),
       Review=require('../models/Review'), Coupon=require('../models/Coupon'), Notification=require('../models/Notification'), Deal=require('../models/Deal'), Announcement=require('../models/Announcement'), Wallet=require('../models/Wallet'), Return=require('../models/Return'), KYC=require('../models/KYC'), Config=require('../models/Config'), Referral=require('../models/Referral'), Wishlist=require('../models/Wishlist');
@@ -121,7 +122,21 @@ r.post('/finance/payouts/pay',protect,allow('finance','admin'),async(req,res)=>{
   }
 });
 r.get('/finance/refunds',protect,allow('finance','admin'),async(req,res)=>res.json(await Order.find({status:'cancelled'}).populate('buyerId','fullName email').sort({createdAt:-1}).limit(100)));
-r.patch('/finance/refunds/:id',protect,allow('finance','admin'),async(req,res)=>{ await Order.findByIdAndUpdate(req.params.id,{refundStatus:'done'}); res.json({msg:'Refund marked as done'}); });
+r.patch('/finance/refunds/:id',protect,allow('finance','admin'),async(req,res)=>{
+  let settlement;
+  try { settlement=buildRefundSettlement(req.body.settlementReference,req.user.id); }
+  catch(error) { return res.status(400).json({msg:error.message}); }
+  const o=await Order.findOneAndUpdate(
+    { _id:req.params.id, status:'cancelled', refundStatus:'pending' },
+    { $set:{ refundStatus:'done', ...settlement } },
+    { new:true, runValidators:true }
+  );
+  if(!o){
+    if(!await Order.exists({_id:req.params.id})) return res.status(404).json({msg:'Refund order not found'});
+    return res.status(409).json({msg:'Refund is not pending or has already been settled.'});
+  }
+  res.json({msg:'Manual refund settlement recorded.',refund:{orderId:o._id,refundStatus:o.refundStatus,settlementReference:o.refundSettlementReference,settledAt:o.refundSettledAt}});
+});
 // reviews
 r.get('/ratings',async(req,res)=>{ const rs=await Review.aggregate([{$group:{_id:'$productId',avg:{$avg:'$rating'},count:{$sum:1}}}]); const m={}; rs.forEach(x=>m[x._id]={avg:+x.avg.toFixed(1),count:x.count}); res.json(m); });
 r.get('/reviews/:productId',async(req,res)=>res.json(await Review.find({productId:req.params.productId}).sort({createdAt:-1}).limit(50)));
