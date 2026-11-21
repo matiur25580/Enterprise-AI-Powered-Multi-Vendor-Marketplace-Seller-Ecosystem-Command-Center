@@ -47,4 +47,4 @@ function normalizeOrderItems(requestedItems, products) {
   return { items, subtotal: +subtotal.toFixed(2), sellerId: normalized[0].product.sellerId || null, warehouse: normalized[0].product.warehouse || 'WH-Dhaka' };
 }
 
-module.exports = { publicRegistrationAllowed, normalizeOrderItems };
+function calculatePayoutAmount(orders) {\n  const net = orders.reduce((sum, order) => {\n    const total = Number(order.total);\n    const commission = Number(order.commission || 0);\n    if (!Number.isFinite(total) || !Number.isFinite(commission) || total < 0 || commission < 0) {\n      throw new Error('Order payout values must be valid non-negative amounts.');\n    }\n    return sum + Math.max(0, total - commission);\n  }, 0);\n  return +net.toFixed(2);\n}\n\nmodule.exports = { publicRegistrationAllowed, normalizeOrderItems, calculatePayoutAmount };
