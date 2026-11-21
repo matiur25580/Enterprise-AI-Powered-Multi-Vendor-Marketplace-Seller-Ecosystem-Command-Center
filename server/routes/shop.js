@@ -93,7 +93,7 @@ r.patch('/orders/:id/cancel',protect,async(req,res)=>{ const o=await Order.findB
 r.get('/logistics/shipments',protect,allow('logistics','admin'),async(req,res)=>res.json(await Order.find({status:{$in:['placed','shipped']}}).populate('buyerId','fullName').sort({createdAt:-1}).limit(100)));
 // finance
 r.get('/finance',protect,allow('finance','admin'),async(req,res)=>{ const os=await Order.find({status:{$ne:'cancelled'}}); res.json({gmv:os.reduce((s,o)=>s+o.total,0),commission:os.reduce((s,o)=>s+(o.commission||0),0),orders:os.length,fraud:os.filter(o=>o.fraudFlag).length,discount:os.reduce((s,o)=>s+(o.discount||0),0)}); });
-r.get('/finance/payouts',protect,allow('finance','admin'),async(req,res)=>{ const orders=await Order.find({status:{$ne:'cancelled'}}).populate('sellerId','fullName email'); const map={};
+r.get('/finance/payouts',protect,allow('finance','admin'),async(req,res)=>{ const orders=await Order.find({status:'delivered'}).populate('sellerId','fullName email'); const map={};
   orders.forEach(o=>{ const sid=String(o.sellerId?._id||o.sellerId); if(!map[sid]) map[sid]={sellerId:sid,name:o.sellerId?.fullName||'Unknown',email:o.sellerId?.email||'',gross:0,commission:0,orders:0};
     map[sid].gross+=o.total; map[sid].commission+=o.commission||0; map[sid].orders++; });
   const paid=await Payout.find({status:'paid'}); const pendingPayouts=await Payout.find({status:'pending'}); const pm={}; paid.forEach(p=>pm[String(p.sellerId)]=(pm[String(p.sellerId)]||0)+p.amount); const pendingMap={}; pendingPayouts.forEach(p=>pendingMap[String(p.sellerId)]=(pendingMap[String(p.sellerId)]||0)+p.amount);
