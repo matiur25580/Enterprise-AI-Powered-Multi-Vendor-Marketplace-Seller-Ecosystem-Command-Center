@@ -80,12 +80,19 @@ r.patch('/orders/:id',protect,allow('logistics','admin','seller'),async(req,res)
   const o=await Order.findById(req.params.id);
   if(!o) return res.status(404).json({msg:'Order not found'});
   if(req.user.role==='seller'&&String(o.sellerId)!==req.user.id) return res.status(403).json({msg:'Not your order'});
-  const allowedStatuses=['placed','processing','shipped','delivered','cancelled'];
-  if(!allowedStatuses.includes(req.body.status)) return res.status(400).json({msg:'Invalid order status'});
+  const { isOrderStatusAllowed }=require('../utils/orderStatusPolicy');
+  if(!isOrderStatusAllowed(req.user.role,req.body.status)) {
+    return res.status(403).json({msg:'Your role cannot set this order status.'});
+  }
   const u={status:req.body.status};
   if(typeof req.body.deliveryNote==='string') u.deliveryNote=req.body.deliveryNote.slice(0,500);
-  Object.assign(o,u); await o.save();
-  res.json({msg:'Order status updated to '+o.status,o}); });
+  const updated=await Order.findOneAndUpdate(
+    {_id:o._id,status:o.status},
+    {$set:u},
+    {new:true,runValidators:true}
+  );
+  if(!updated) return res.status(409).json({msg:'Order status changed concurrently. Refresh and try again.'});
+  res.json({msg:'Order status updated to '+updated.status,o:updated}); });
 r.patch('/orders/:id/cancel',protect,async(req,res)=>{ const o=await Order.findById(req.params.id);
   if(!o||String(o.buyerId)!==req.user.id) return res.status(403).json({msg:'Not allowed'});
   if(o.status!=='placed') return res.status(400).json({msg:'Cannot cancel at this stage'});
