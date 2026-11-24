@@ -1,3 +1,4 @@
+// Public sign-up is intentionally limited to buyer accounts; privileged roles need controlled provisioning.
 function publicRegistrationAllowed(role) {
   return !role || role === 'buyer';
 }
