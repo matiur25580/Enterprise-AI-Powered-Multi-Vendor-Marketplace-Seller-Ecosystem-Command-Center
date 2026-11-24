@@ -3,6 +3,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+// API bootstrap: configure cross-origin access and request protections before mounting marketplace endpoints.
 const app = express();
 
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
