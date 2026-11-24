@@ -1,3 +1,4 @@
+// Defines which order lifecycle transitions each marketplace role is permitted to request.
 const ROLE_STATUSES = {
   seller: ['processing', 'shipped'],
   logistics: ['placed', 'processing', 'shipped', 'delivered', 'cancelled'],
